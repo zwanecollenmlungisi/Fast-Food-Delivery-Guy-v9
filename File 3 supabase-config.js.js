@@ -7,8 +7,8 @@
 //  ================================================================
 
 // Replace these with your actual Supabase credentials
-const SUPABASE_URL = 'https://your-project-id.supabase.co';     // ← PASTE YOUR PROJECT URL HERE
-const SUPABASE_ANON_KEY = 'your-anon-key-here';                // ← PASTE YOUR ANON KEY HERE
+const SUPABASE_URL = 'https://jcedbbscgovkmmptpxpr.supabase.co';     // ← PASTE YOUR PROJECT URL HERE
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjZWRiYnNjZ292a21tcHRweHByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0NTQxMjYsImV4cCI6MjA5OTAzMDEyNn0.oxp4vl-hZ-XEk4NtIrN5mFPYX28iB9AFGuVpvFIi1r4';                // ← PASTE YOUR ANON KEY HERE
 
 // ================================================================
 //  🔥 STEP 2: INITIALIZE SUPABASE CLIENT
