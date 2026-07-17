@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>FastFood Guy</title>
+    
+    <!-- External Dependencies -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    
+    <!-- App Styles -->
+    <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+
+    <!-- ===== LOADING OVERLAY ===== -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div style="font-weight:600;color:var(--text-secondary);">Loading...</div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h3 id="modalTitle">Confirm</h3>
+            <p id="modalBody">Are you sure?</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="modalCancel">Cancel</button>
+                <button class="btn-confirm" id="modalConfirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PAYMENT MODAL ===== -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-box">
+            <h3>💳 Payment Required</h3>
+            <p id="paymentBody">Please complete payment to confirm your order.</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="paymentCancel">Cancel</button>
+                <button class="btn-confirm" id="paymentWhatsApp">
+                    <i class="fab fa-whatsapp"></i> Pay via WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== AUTH OVERLAY ===== -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+            <h2><i class="fas fa-utensils" style="color:var(--primary);"></i> FastFoodGuy</h2>
+            <div class="sub">Sign in to start ordering</div>
+            <div class="auth-tabs">
+                <button class="active" data-tab="login">Sign In</button>
+                <button data-tab="register">Sign Up</button>
+            </div>
+            <!-- Login Form -->
+            <div class="auth-form active" id="authLoginForm">
+                <form id="authLoginFormElement">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="authLoginEmail" placeholder="you@example.com" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="authLoginPassword" placeholder="••••••••" required />
+                            <button type="button" class="toggle-password" onclick="toggleAuthPassword('authLoginPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary-app">Sign In</button>
+                </form>
+            </div>
+            <!-- Register Form -->
+            <div class="auth-form" id="authRegisterForm">
+                <form id="authRegisterFormElement">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="authRegisterName" placeholder="John Doe" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="authRegisterEmail" placeholder="you@example.com" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="authRegisterPassword" placeholder="At least 8 characters" required minlength="8" />
+                            <button type="button" class="toggle-password" onclick="toggleAuthPassword('authRegisterPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="text-muted fs-12" style="margin-top:4px;"><i class="fas fa-info-circle"></i> Minimum 8 characters</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone (optional)</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-phone"></i>
+                            <input type="tel" id="authRegisterPhone" placeholder="+27 82 555 1234" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address (optional)</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-location-dot"></i>
+                            <input type="text" id="authRegisterAddress" placeholder="12 Vilakazi St, Soweto" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>I want to sign up as:</label>
+                        <div class="role-selector" id="authRoleSelector">
+                            <button type="button" class="role-btn active" data-role="customer"><i class="fas fa-user"></i> Customer</button>
+                            <button type="button" class="role-btn" data-role="vendor"><i class="fas fa-store"></i> Vendor</button>
+                            <button type="button" class="role-btn" data-role="driver"><i class="fas fa-motorcycle"></i> Driver</button>
+                            <button type="button" class="role-btn" data-role="admin"><i class="fas fa-user-tie"></i> Admin</button>
+                        </div>
+                    </div>
+                    <div id="authVendorFields" class="hidden">
+                        <div class="form-group"><label>Business Name</label><input type="text" id="authVendorBusiness" placeholder="Mama's Kitchen" /></div>
+                        <div class="form-group"><label>Business Address</label><input type="text" id="authVendorAddress" placeholder="45 Bree Street, CBD" /></div>
+                    </div>
+                    <div id="authDriverFields" class="hidden">
+                        <div class="form-group"><label>Vehicle Type</label><input type="text" id="authDriverVehicle" placeholder="Car / Scooter" /></div>
+                    </div>
+                    <button type="submit" class="btn-primary-app">Create Account</button>
+                </form>
+            </div>
+            <div class="auth-footer">
+                <span id="authFooterText">Already have an account?</span>
+                <button class="link" id="authFooterToggle">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== APP ===== -->
+    <div class="app" id="app">
+
+        <!-- STATUS BAR -->
+        <div class="status-bar">
+            <span class="time" id="statusTime">9:41</span>
+            <span><i class="fas fa-signal"></i> <i class="fas fa-wifi"></i> <i class="fas fa-battery-three-quarters"></i></span>
+        </div>
+
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-utensils"></i>
+                <span class="brand">FastFoodGuy</span>
+                <span class="dot">·</span>
+                <span class="delivery-sub">delivery</span>
+            </div>
+            <div class="header-actions">
+                <span class="role-badge-header customer" id="headerRoleBadge">Customer</span>
+                <button class="icon-btn" id="notifBtn"><i class="fas fa-bell"></i><span class="badge-dot" id="notifDot"></span></button>
+                <div class="avatar" id="avatarBtn">TM</div>
+                <button class="icon-btn" id="logoutBtn" style="background:var(--danger-bg);color:var(--danger);" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- CAP BANNER -->
+        <div style="padding:0 14px;">
+            <div class="cap-banner">
+                <span><i class="fas fa-shield-alt"></i> Delivery fee cap</span>
+                <span class="cap-amount" id="deliveryFeeDisplay">R80</span>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="app-content" id="appContent">
+
+            <!-- ===== TAB: CUSTOMER (Home) ===== -->
+            <div id="tab-customer" class="tab-panel active">
+                <div class="location-bar" id="locationBar">
+                    <i class="fas fa-location-dot"></i>
+                    <div class="loc-info" id="locInfo">
+                        <span id="locName">Detecting location...</span>
+                        <span class="sub" id="locSub">Enable GPS for nearby restaurants</span>
+                    </div>
+                    <button class="loc-btn" id="locBtn"><i class="fas fa-rotate"></i> Locate</button>
+                </div>
+
+                <div class="map-container" id="mapContainer">
+                    <div id="map" style="width:100%;height:100%;"></div>
+                    <div class="map-placeholder" id="mapPlaceholder">
+                        <i class="fas fa-map-location-dot"></i>
+                        <span>Loading map...</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-store"></i> Nearby Restaurants</h3>
+                        <span class="card-action" id="refreshRestaurants"><i class="fas fa-rotate"></i> Refresh</span>
+                    </div>
+                    <div class="restaurant-list" id="restaurantList">
+                        <div class="text-muted fs-13" style="padding:12px 0;text-align:center;">Searching for restaurants...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clock-rotate-left"></i> Recent Orders</h3>
+                        <button class="card-action" id="viewAllOrders">View all</button>
+                    </div>
+                    <div id="recentOrdersPreview">
+                        <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">No orders yet</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: VENDOR ===== -->
+            <div id="tab-vendor" class="tab-panel">
+                <div id="vendorDashboard">
+                    <div class="flex-between" style="margin-bottom:12px;">
+                        <div class="flex">
+                            <span style="font-weight:700;" id="vendorNameDisplay">Welcome, Vendor</span>
+                            <span class="status-badge verified" id="vendorStatusBadge">Verified</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-store"></i> Your Restaurant</h3></div>
+                        <div id="vendorRestaurantInfo">
+                            <div class="text-muted fs-13">Loading restaurant info...</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-clipboard-list"></i> Incoming Orders</h3>
+                            <span class="badge-status preparing" id="vendorOrderBadge">0</span>
+                        </div>
+                        <div id="vendorOrdersList">
+                            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">No incoming orders</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-utensil-spoon"></i> Your Menu</h3>
+                            <div style="display:flex;gap:4px;">
+                                <button class="btn-primary-app" style="padding:4px 14px;font-size:12px;" id="vendorAddMenuItemBtn"><i class="fas fa-plus"></i> Add</button>
+                            </div>
+                        </div>
+                        <div id="vendorMenuList">
+                            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Loading menu...</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-chart-simple"></i> Today's Stats</h3></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+                            <div style="background:#faf8f6;border-radius:10px;padding:10px;">
+                                <div style="font-size:20px;font-weight:800;color:var(--primary);" id="vendorOrderCount">0</div>
+                                <div style="font-size:10px;color:var(--text-muted);">Orders</div>
+                            </div>
+                            <div style="background:#faf8f6;border-radius:10px;padding:10px;">
+                                <div style="font-size:20px;font-weight:800;color:var(--success);" id="vendorRevenue">R0</div>
+                                <div style="font-size:10px;color:var(--text-muted);">Revenue</div>
+                            </div>
+                            <div style="background:#faf8f6;border-radius:10px;padding:10px;">
+                                <div style="font-size:20px;font-weight:800;color:#764ba2;" id="vendorCostDisplay">R0</div>
+                                <div style="font-size:10px;color:var(--text-muted);">Vendor Cost</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: MENU (Order / Cart) ===== -->
+            <div id="tab-menu" class="tab-panel">
+                <div class="card" id="selectedRestaurantCard" style="display:none;">
+                    <div class="flex-between">
+                        <div>
+                            <div style="font-weight:700;font-size:17px;" id="selectedRestName">Restaurant</div>
+                            <div class="fs-13 text-muted" id="selectedRestAddr">Address</div>
+                        </div>
+                        <button class="btn-outline-app" style="padding:4px 14px;font-size:12px;" id="clearRestaurantBtn"><i class="fas fa-times"></i> Change</button>
+                    </div>
+                </div>
+
+                <div class="card" id="menuItemsCard">
+                    <div class="card-header">
+                        <h3><i class="fas fa-utensil-spoon"></i> Menu</h3>
+                        <span class="text-muted fs-12" id="menuCount">0 items</span>
+                    </div>
+                    <div id="menuItemsList">
+                        <div class="text-muted fs-13" style="padding:12px 0;text-align:center;">Select a restaurant to view menu</div>
+                    </div>
+                </div>
+
+                <div class="card" id="cartCard">
+                    <div class="card-header">
+                        <h3><i class="fas fa-shopping-cart"></i> Your Cart</h3>
+                        <span class="text-muted fs-12" id="cartCount">0 items</span>
+                    </div>
+                    <div id="cartItems">
+                        <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Cart is empty</div>
+                    </div>
+                    <div class="cart-total" id="cartTotal" style="display:none;">
+                        <span>Total</span>
+                        <span>
+                            <span class="delivery-fee">+ <span id="deliveryFeeDisplayCart">R80</span> delivery</span>
+                            <span id="cartTotalAmount">R0</span>
+                        </span>
+                    </div>
+                    <div id="costBreakdown" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">
+                        <div class="cost-breakdown"><span class="label">Subtotal (food)</span><span class="value" id="breakdownSubtotal">R0</span></div>
+                        <div class="cost-breakdown"><span class="label">Delivery fee</span><span class="value delivery" id="breakdownDelivery">R80</span></div>
+                        <div class="cost-breakdown"><span class="label">Vendor cost</span><span class="value vendor-cost" id="breakdownVendorCost">R0</span></div>
+                    </div>
+                    <button class="btn-primary-app w-full" style="justify-content:center;margin-top:10px;" id="placeOrderBtn" disabled>
+                        <i class="fas fa-credit-card"></i> Proceed to Payment
+                    </button>
+                </div>
+            </div>
+
+            <!-- ===== TAB: DRIVER ===== -->
+            <div id="tab-driver" class="tab-panel">
+                <div id="driverDashboard">
+                    <div class="flex-between" style="margin-bottom:12px;">
+                        <div class="flex">
+                            <span style="font-weight:700;" id="driverNameDisplay">Welcome, Driver</span>
+                            <span class="status-badge available" id="driverStatusBadge">Available</span>
+                        </div>
+                    </div>
+
+                    <div class="tab-bar">
+                        <button class="active" data-dtab="available">Available Orders</button>
+                        <button data-dtab="myorders">My Orders</button>
+                    </div>
+
+                    <div id="driverAvailableOrders" class="driver-tab-content">
+                        <div id="driverAvailableList">
+                            <div class="text-muted text-center" style="padding:20px 0;">Loading orders...</div>
+                        </div>
+                    </div>
+
+                    <div id="driverMyOrders" class="driver-tab-content hidden">
+                        <div id="driverMyOrdersList">
+                            <div class="text-muted text-center" style="padding:20px 0;">No orders assigned</div>
+                        </div>
+                    </div>
+
+                    <div class="map-container" id="driverMapContainer">
+                        <div id="driverMap" style="width:100%;height:100%;"></div>
+                    </div>
+                    <div id="driverMapOrderInfo" class="text-muted fs-13" style="text-align:center;margin-top:4px;">Select an order to view location</div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: ADMIN ===== -->
+            <div id="tab-admin" class="tab-panel">
+                <div id="adminDashboard">
+                    <div class="flex-between" style="margin-bottom:12px;">
+                        <div class="flex">
+                            <span style="font-weight:700;font-size:16px;">Admin Control Panel</span>
+                            <span class="status-badge verified">Master</span>
+                            <span class="wa-admin-badge"><i class="fab fa-whatsapp"></i> WhatsApp: +27 78 868 2541</span>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="admin-stats">
+                        <div class="admin-stat-card">
+                            <div class="number" id="adminTotalOrders">0</div>
+                            <div class="label">Total Orders</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="number green" id="adminCompletedOrders">0</div>
+                            <div class="label">Completed</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="number orange" id="adminActiveOrders">0</div>
+                            <div class="label">Active</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="number blue" id="adminTotalRevenue">R0</div>
+                            <div class="label">Revenue</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="number purple" id="adminTotalVendorCost">R0</div>
+                            <div class="label">Vendor Costs</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="number" id="adminTotalDeliveryFees">R0</div>
+                            <div class="label">Delivery Fees</div>
+                        </div>
+                    </div>
+
+                    <!-- Settings -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-sliders-h"></i> System Settings</h3></div>
+                        <div class="admin-settings">
+                            <div class="setting-item">
+                                <label>Delivery Fee (R)</label>
+                                <input type="number" id="adminDeliveryFee" value="80" min="0" step="5" />
+                            </div>
+                            <div class="setting-item">
+                                <label>Vendor Cost (%)</label>
+                                <input type="number" id="adminVendorCostPercent" value="30" min="0" max="100" step="5" />
+                            </div>
+                            <div class="setting-item" style="grid-column:span 2;">
+                                <label>Base Vendor Cost (R) - applies per order</label>
+                                <input type="number" id="adminVendorCostBase" value="15" min="0" step="5" />
+                            </div>
+                        </div>
+                        <button class="btn-primary-app w-full" style="justify-content:center;margin-top:10px;" id="adminSaveSettingsBtn">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+
+                    <!-- All Orders -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-clipboard-list"></i> All Orders</h3></div>
+                        <div id="adminOrdersList">
+                            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">No orders yet</div>
+                        </div>
+                    </div>
+
+                    <!-- All Users -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-users"></i> All Users</h3></div>
+                        <div id="adminUsersList">
+                            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Loading users...</div>
+                        </div>
+                    </div>
+
+                    <!-- All Restaurants -->
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-store"></i> All Restaurants</h3></div>
+                        <div id="adminRestaurantsList">
+                            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Loading restaurants...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: WHATSAPP ===== -->
+            <div id="tab-whatsapp" class="tab-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fab fa-whatsapp" style="color:var(--whatsapp);"></i> WhatsApp</h3>
+                        <span class="wa-admin-badge"><i class="fab fa-whatsapp"></i> +27 78 868 2541</span>
+                    </div>
+                    <div style="background:#f0f4f8;border-radius:12px;padding:12px 14px;font-size:12px;color:#2d3a4a;margin-bottom:12px;">
+                        <i class="fas fa-info-circle"></i> All payment requests, order confirmations, and vendor commands are sent to the admin via WhatsApp.
+                    </div>
+                    <div class="whatsapp-bubble" id="whatsappMessage">
+                        <span class="wa-icon"><i class="fab fa-whatsapp"></i> 🍔 FAST FOOD DELIVERY GUY</span>
+                        ━━━━━━━━━━━━━━━━━━
+                        👤 <span class="wa-highlight" id="waClientName">Customer</span>
+                        📍 <span id="waClientAddress">Address</span>
+                        📞 <span id="waClientPhone">Phone</span>
+                        🛒 <span id="waOrderItems">No items</span>
+                        💰 Total: <span class="wa-highlight" id="waTotal">R0</span>
+                        💳 Payment: Bank Transfer
+                        ━━━━━━━━━━━━━━━━━━
+                        💳 Pay to: Capitec 1234567890
+                        📱 Ref: <span class="wa-highlight" id="waOrderRef">ORD-000</span>
+                        ✅ Send proof of payment to confirm.
+                        ━━━━━━━━━━━━━━━━━━
+                        📲 Admin: +27 78 868 2541
+                    </div>
+                    <div class="whatsapp-actions">
+                        <button class="btn-wa" id="sendWhatsAppBtn"><i class="fab fa-whatsapp"></i> Send to Admin</button>
+                        <button class="btn-outline-app" id="editWhatsAppBtn"><i class="fas fa-edit"></i> Edit</button>
+                    </div>
+                    <div style="margin-top:10px;background:var(--success-bg);padding:8px 14px;border-radius:var(--radius-sm);font-size:12px;color:var(--success);display:flex;align-items:center;gap:6px;" id="whatsappStatus">
+                        <i class="fas fa-check-circle"></i> Admin will handle all communication
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-comment-dots"></i> Live Chat</h3></div>
+                    <div class="chat-box" id="chatBox">
+                        <div class="msg"><span class="sender system">Admin:</span> Welcome to FastFood Guy! All WhatsApp messages go to admin. <span class="time">12:00</span></div>
+                        <div class="msg"><span class="sender you">You:</span> Order #ORD-002 is ready <span class="time">12:20</span></div>
+                        <div class="msg"><span class="sender driver">Driver:</span> On my way! <span class="time">12:22</span></div>
+                        <div class="msg delivered"><i class="fas fa-check-circle"></i> Delivered at 12:48</div>
+                    </div>
+                    <div class="command-row mt-8">
+                        <input type="text" placeholder="Type a message…" id="chatInput" />
+                        <button class="btn-send-cmd" id="chatSendBtn"><i class="fab fa-whatsapp"></i></button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <nav class="bottom-nav" id="bottomNav">
+            <button class="nav-item active" data-tab="tab-customer"><i class="fas fa-home"></i><span>Home</span></button>
+            <button class="nav-item" data-tab="tab-vendor"><i class="fas fa-store"></i><span>Vendor</span></button>
+            <button class="nav-item" data-tab="tab-menu"><i class="fas fa-utensil-spoon"></i><span>Order</span><span class="nav-badge" id="orderBadge" style="display:none;">0</span></button>
+            <button class="nav-item" data-tab="tab-driver"><i class="fas fa-motorcycle"></i><span>Driver</span></button>
+            <button class="nav-item" data-tab="tab-admin"><i class="fas fa-user-tie"></i><span>Admin</span></button>
+            <button class="nav-item" data-tab="tab-whatsapp"><i class="fab fa-whatsapp"></i><span>WhatsApp</span></button>
+        </nav>
+
+    </div>
+
+    <!-- ===== APP SCRIPTS (loaded in order) ===== -->
+    <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/data.js"></script>
+    <script src="scripts/ui.js"></script>
+    <script src="scripts/cart.js"></script>
+    <script src="scripts/orders.js"></script>
+    <script src="scripts/vendor.js"></script>
+    <script src="scripts/driver.js"></script>
+    <script src="scripts/admin.js"></script>
+    <script src="scripts/whatsapp.js"></script>
+    <script src="scripts/map.js"></script>
+    <script src="scripts/app.js"></script>
+    <script src="scripts/main.js"></script>
+</body>
+</html>

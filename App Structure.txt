@@ -1,0 +1,21 @@
+fastfood-guy/
+├── index.html
+├── styles/
+│   └── main.css
+├── scripts/
+│   ├── supabase-config.js
+│   ├── auth.js
+│   ├── data.js
+│   ├── ui.js
+│   ├── cart.js
+│   ├── orders.js
+│   ├── vendor.js
+│   ├── driver.js
+│   ├── admin.js
+│   ├── whatsapp.js
+│   ├── map.js
+│   ├── app.js
+│   └── main.js
+├── assets/
+│   └── images/
+└── README.md
