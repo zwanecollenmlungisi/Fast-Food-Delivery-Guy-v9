@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Fast Food Delivery Guy</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ===== RESET & BASE ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --primary: #ff6b35;
+      --primary-dark: #e85a2a;
+      --primary-light: #fff0e8;
+      --primary-gradient: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+      --bg: #f5f2f0;
+      --card-bg: #ffffff;
+      --border: #ede8e4;
+      --text-primary: #1a1a2e;
+      --text-secondary: #5a4f49;
+      --text-muted: #8a7e77;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 30px rgba(0,0,0,0.06);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.08);
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --whatsapp: #25d366;
+      --whatsapp-dark: #1da85c;
+      --success: #1d7a3e;
+      --success-bg: #e6f4ea;
+      --warning: #f5a623;
+      --warning-bg: #fef6e6;
+      --danger: #d1453b;
+      --danger-bg: #fde8e5;
+      --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #e8e2dc;
+      display: flex;
+      justify-content: center;
+      padding: 12px;
+      min-height: 100vh;
+    }
+    .app {
+      max-width: 430px;
+      width: 100%;
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      min-height: 780px;
+      max-height: 95vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0 auto;
+    }
+    @media (max-width: 450px) {
+      body { padding: 0; background: var(--bg); }
+      .app { border-radius: 0; max-height: 100vh; min-height: 100vh; }
+    }
+    /* ===== SCROLLBAR ===== */
+    .app-content { flex: 1; overflow-y: auto; padding: 0 14px 20px; }
+    .app-content::-webkit-scrollbar { width: 3px; }
+    .app-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    /* ===== STATUS BAR ===== */
+    .status-bar {
+      display: flex; justify-content: space-between; padding: 6px 16px 2px;
+      font-size: 12px; font-weight: 600; color: var(--text-secondary);
+      background: var(--bg); flex-shrink: 0;
+    }
+    .status-bar .time { font-weight: 700; }
+    /* ===== HEADER ===== */
+    .app-header {
+      background: var(--bg); padding: 6px 14px 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .app-header .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 800; font-size: 19px;
+      color: var(--text-primary); letter-spacing: -0.5px;
+    }
+    .app-header .logo i {
+      background: var(--primary-gradient);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; font-size: 24px;
+    }
+    .app-header .logo span { background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .app-header .logo .sub {
+      font-size: 10px; font-weight: 500; color: var(--text-muted);
+      -webkit-text-fill-color: var(--text-muted); background: none;
+    }
+    .header-actions { display: flex; gap: 6px; align-items: center; }
+    .header-actions .icon-btn {
+      width: 38px; height: 38px; border-radius: 50%; border: none;
+      background: var(--card-bg); box-shadow: var(--shadow-sm);
+      color: var(--text-secondary); font-size: 16px; cursor: pointer;
+      transition: var(--transition); display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .header-actions .icon-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .header-actions .icon-btn .badge-dot {
+      position: absolute; top: 6px; right: 6px;
+      width: 10px; height: 10px; background: var(--danger);
+      border-radius: 50%; border: 2px solid var(--card-bg);
+    }
+    .header-actions .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--primary-gradient);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 14px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(255,107,53,0.25);
+      flex-shrink: 0;
+    }
+    /* ===== CAP BANNER ===== */
+    .cap-banner {
+      background: var(--primary-gradient);
+      margin: 10px 0 14px; padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: space-between;
+      color: white; font-weight: 600; font-size: 13px;
+      box-shadow: 0 6px 20px rgba(255,107,53,0.25);
+      flex-shrink: 0;
+    }
+    .cap-banner i { font-size: 16px; margin-right: 6px; }
+    .cap-banner .cap-amount {
+      background: rgba(255,255,255,0.2);
+      padding: 3px 14px; border-radius: 30px;
+      font-size: 17px; font-weight: 800;
+      backdrop-filter: blur(4px);
+    }
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav {
+      display: flex; justify-content: space-around; align-items: center;
+      padding: 6px 10px 10px; background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      flex-shrink: 0; box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
+    }
+    .bottom-nav .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+      background: none; border: none; color: var(--text-muted);
+      font-size: 10px; font-weight: 500; cursor: pointer;
+      transition: var(--transition); padding: 4px 10px;
+      border-radius: var(--radius-sm); position: relative;
+      font-family: inherit;
+    }
+    .bottom-nav .nav-item i { font-size: 20px; transition: var(--transition); }
+    .bottom-nav .nav-item.active { color: var(--primary); }
+    .bottom-nav .nav-item.active i { transform: translateY(-2px); }
+    .bottom-nav .nav-item .nav-badge {
+      position: absolute; top: -2px; right: 0;
+      background: var(--danger); color: white; font-size: 9px;
+      font-weight: 700; width: 18px; height: 18px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .bottom-nav .nav-item .nav-badge.whatsapp-badge { background: var(--whatsapp); }
+    /* ===== TAB PANELS ===== */
+    .tab-panel { display: none; animation: slideUp 0.35s ease; padding-top: 4px; }
+    .tab-panel.active { display: block; }
+    @keyframes slideUp {
+      0% { opacity: 0; transform: translateY(18px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--card-bg); border-radius: var(--radius-sm);
+      padding: 16px 18px; margin-bottom: 14px;
+      box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .card-header h3 {
+      font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-header h3 i { color: var(--primary); font-size: 17px; }
+    .card-header .card-action {
+      font-size: 12px; font-weight: 600; color: var(--primary);
+      cursor: pointer; background: none; border: none;
+      font-family: inherit; padding: 4px 8px; border-radius: 30px;
+      transition: var(--transition);
+    }
+    .card-header .card-action:hover { background: var(--primary-light); }
+    /* ===== LOCATION & MAP ===== */
+    .location-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg); padding: 10px 14px;
+      border-radius: var(--radius-sm); margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+    .location-bar i { color: var(--primary); font-size: 18px; }
+    .location-bar .loc-info {
+      flex: 1; font-size: 14px; font-weight: 500;
+      color: var(--text-secondary); overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .location-bar .loc-info .sub {
+      font-weight: 400; font-size: 12px; color: var(--text-muted);
+      display: block; white-space: normal;
+    }
+    .location-bar .loc-btn {
+      background: var(--primary); color: white; border: none;
+      padding: 6px 16px; border-radius: 30px;
+      font-weight: 600; font-size: 12px; cursor: pointer;
+      transition: var(--transition); font-family: inherit;
+      white-space: nowrap;
+    }
+    .location-bar .loc-btn:hover { background: var(--primary-dark); }
+    .location-bar .loc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .map-container {
+      width: 100%; height: 140px; border-radius: var(--radius-sm);
+      overflow: hidden; border: 1px solid var(--border);
+      margin-bottom: 14px; background: #e8e2dc; position: relative;
+    }
+    .map-container #map { width: 100%; height: 100%; }
+    .map-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; color: var(--text-muted);
+      font-size: 13px; background: #e8e2dc; gap: 6px;
+    }
+    .map-placeholder i { font-size: 32px; color: var(--primary); opacity: 0.6; }
+    /* ===== RESTAURANT LIST ===== */
+    .restaurant-item {
+      display: flex; gap: 14px; padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: var(--transition); align-items: center;
+    }
+    .restaurant-item:last-child { border-bottom: 0; }
+    .restaurant-item:hover {
+      background: var(--primary-light);
+      margin: 0 -8px; padding: 12px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .restaurant-item .r-icon {
+      width: 50px; height: 50px; border-radius: var(--radius-sm);
+      background: var(--primary-gradient);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 22px; flex-shrink: 0;
+    }
+    .restaurant-item .r-info { flex: 1; }
+    .restaurant-item .r-name { font-weight: 700; font-size: 15px; }
+    .restaurant-item .r-meta {
+      font-size: 13px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .restaurant-item .r-meta i { color: var(--primary); }
+    .restaurant-item .r-distance {
+      font-size: 12px; color: var(--text-muted);
+      background: var(--bg); padding: 2px 10px; border-radius: 30px;
+      font-weight: 500;
+    }
+    .restaurant-item .r-fee { font-weight: 600; color: var(--success); font-size: 13px; }
+    /* ===== MENU ITEMS ===== */
+    .menu-item-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); gap: 8px;
+      cursor: pointer;
+    }
+    .menu-item-row:last-child { border-bottom: 0; }
+    .menu-item-row .mi-left { flex: 1; }
+    .menu-item-row .mi-name { font-weight: 600; font-size: 14px; }
+    .menu-item-row .mi-desc { font-size: 12px; color: var(--text-muted); }
+    .menu-item-row .mi-right {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .menu-item-row .mi-price { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+    .menu-item-row .mi-add {
+      background: var(--primary); color: white; border: none;
+      width: 30px; height: 30px; border-radius: 50%;
+      font-size: 16px; cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+    .menu-item-row .mi-add:hover { background: var(--primary-dark); transform: scale(1.05); }
+    .menu-item-row .mi-add.added { background: var(--success); }
+    /* ===== CART ===== */
+    .cart-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .cart-item:last-child { border-bottom: 0; }
+    .cart-item .ci-left {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cart-item .ci-qty {
+      background: var(--bg); padding: 0 8px; border-radius: 30px;
+      font-weight: 600; font-size: 13px;
+    }
+    .cart-item .ci-remove {
+      background: none; border: none; color: var(--danger);
+      cursor: pointer; font-size: 14px; padding: 4px;
+    }
+    .cart-total {
+      display: flex; justify-content: space-between;
+      padding: 12px 0 6px; font-weight: 700; font-size: 17px;
+      border-top: 2px solid var(--border); margin-top: 6px;
+    }
+    .cart-total .delivery-fee {
+      font-weight: 400; font-size: 14px; color: var(--text-muted);
+    }
+    .cart-total .delivery-fee span { font-weight: 600; color: var(--success); }
+    /* ===== ORDER HISTORY ===== */
+    .order-history-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 4px;
+    }
+    .order-history-item:last-child { border-bottom: 0; }
+    .order-history-item .oh-left {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .order-history-item .oh-id { font-weight: 700; font-size: 14px; }
+    .order-history-item .oh-rest { font-size: 13px; color: var(--text-secondary); }
+    .order-history-item .oh-right { text-align: right; }
+    .order-history-item .oh-total { font-weight: 700; font-size: 15px; }
+    .order-history-item .oh-status {
+      font-size: 11px; font-weight: 600; padding: 2px 12px;
+      border-radius: 30px; display: inline-block;
+    }
+    .oh-status.delivered { background: var(--success-bg); color: var(--success); }
+    .oh-status.transit { background: var(--warning-bg); color: var(--warning); }
+    .oh-status.preparing { background: #f0edf0; color: var(--text-muted); }
+    .oh-status.cancelled { background: var(--danger-bg); color: var(--danger); }
+    /* ===== WHATSAPP BUBBLE ===== */
+    .whatsapp-bubble {
+      background: #dcf8c6; padding: 14px 16px;
+      border-radius: 14px 14px 14px 4px; font-size: 13px;
+      line-height: 1.7; border-left: 4px solid var(--whatsapp);
+      color: #1e2a1e; white-space: pre-wrap;
+      font-family: 'Inter', monospace; box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .whatsapp-bubble .wa-icon { color: var(--whatsapp); font-weight: 700; }
+    .whatsapp-bubble .wa-highlight {
+      background: rgba(37,211,102,0.15); padding: 0 4px;
+      border-radius: 4px; font-weight: 600;
+    }
+    .whatsapp-actions {
+      display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+    }
+    .btn-wa {
+      background: var(--whatsapp); color: white; border: none;
+      padding: 10px 22px; border-radius: 60px; font-weight: 700;
+      font-size: 14px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: var(--transition); box-shadow: 0 6px 20px rgba(37,211,102,0.25);
+      font-family: inherit;
+    }
+    .btn-wa:hover { background: var(--whatsapp-dark); transform: scale(1.02); }
+    .btn-wa:active { transform: scale(0.97); }
+    .btn-outline-app {
+      background: transparent; border: 2px solid var(--border);
+      padding: 8px 18px; border-radius: 60px; font-weight: 600;
+      font-size: 13px; cursor: pointer; transition: var(--transition);
+      color: var(--text-secondary); font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-outline-app:hover {
+      border-color: var(--primary); color: var(--primary);
+      background: var(--primary-light);
+    }
+    .btn-primary-app {
+      background: var(--primary-gradient); color: white; border: none;
+      padding: 12px 24px; border-radius: 60px; font-weight: 700;
+      font-size: 15px; cursor: pointer; transition: var(--transition);
+      box-shadow: 0 6px 24px rgba(255,107,53,0.25);
+      font-family: inherit; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary-app:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(255,107,53,0.35); }
+    .btn-primary-app:active { transform: scale(0.97); }
+    .btn-primary-app:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-success-app {
+      background: var(--success); color: white; border: none;
+      padding: 10px 20px; border-radius: 60px; font-weight: 600;
+      font-size: 14px; cursor: pointer; transition: var(--transition);
+      font-family: inherit; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-success-app:hover { background: #146b33; transform: scale(1.02); }
+    /* ===== BADGES ===== */
+    .status-badge {
+      font-size: 11px; font-weight: 600; padding: 3px 12px;
+      border-radius: 30px;
+    }
+    .status-badge.available { background: var(--success-bg); color: var(--success); }
+    .status-badge.busy { background: var(--warning-bg); color: var(--warning); }
+    .status-badge.offline { background: var(--danger-bg); color: var(--danger); }
+    .status-badge.verified { background: var(--success-bg); color: var(--success); }
+    .status-badge.pending { background: var(--warning-bg); color: var(--warning); }
+    /* ===== ORDER CARD (driver) ===== */
+    .order-card {
+      background: var(--card-bg); border-radius: var(--radius-sm);
+      padding: 14px 16px; margin-bottom: 10px;
+      border: 1px solid var(--border); transition: var(--transition);
+    }
+    .order-card:hover { border-color: var(--primary); }
+    .order-card .order-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+    .order-card .order-id { font-weight: 700; font-size: 14px; }
+    .order-card .order-status {
+      font-size: 11px; font-weight: 600; padding: 2px 12px;
+      border-radius: 30px;
+    }
+    .order-card .order-status.pending { background: #f0edf0; color: var(--text-muted); }
+    .order-card .order-status.preparing { background: var(--warning-bg); color: var(--warning); }
+    .order-card .order-status.transit { background: var(--success-bg); color: var(--success); }
+    .order-card .order-status.delivered { background: var(--success-bg); color: var(--success); }
+    .order-card .order-details {
+      font-size: 13px; color: var(--text-secondary); margin: 3px 0;
+    }
+    .order-card .order-actions {
+      display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;
+    }
+    .order-card .order-actions button {
+      padding: 6px 16px; border-radius: 30px; border: none;
+      font-weight: 600; font-size: 12px; cursor: pointer;
+      transition: var(--transition); font-family: inherit;
+    }
+    .order-card .order-actions .btn-accept { background: var(--whatsapp); color: white; }
+    .order-card .order-actions .btn-accept:hover { background: var(--whatsapp-dark); }
+    .order-card .order-actions .btn-transit { background: var(--warning); color: white; }
+    .order-card .order-actions .btn-transit:hover { background: #d4951f; }
+    .order-card .order-actions .btn-deliver { background: var(--success); color: white; }
+    .order-card .order-actions .btn-deliver:hover { background: #146b33; }
+    .order-card .order-actions .btn-cancel { background: var(--danger); color: white; }
+    .order-card .order-actions .btn-cancel:hover { background: #b3362d; }
+    /* ===== TAB BAR (driver/vendor) ===== */
+    .tab-bar {
+      display: flex; background: var(--bg); border-radius: var(--radius-sm);
+      margin-bottom: 14px; padding: 4px; gap: 4px;
+    }
+    .tab-bar button {
+      flex: 1; padding: 8px; border: none; background: transparent;
+      border-radius: 10px; font-weight: 600; font-size: 13px;
+      cursor: pointer; transition: var(--transition); font-family: inherit;
+      color: var(--text-muted);
+    }
+    .tab-bar button.active {
+      background: white; color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+    .tab-bar button:hover:not(.active) { color: var(--text-primary); }
+    /* ===== AUTH BOX ===== */
+    .auth-box {
+      background: white; border-radius: var(--radius-md);
+      padding: 24px; box-shadow: var(--shadow-sm); margin-top: 20px;
+    }
+    .auth-box h2 { font-size: 22px; margin-bottom: 20px; }
+    .auth-toggle {
+      color: var(--primary); font-weight: 600; cursor: pointer; font-size: 14px;
+    }
+    .auth-toggle:hover { text-decoration: underline; }
+    /* ===== COMMAND CHIPS ===== */
+    .cmd-chips {
+      display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 8px;
+    }
+    .cmd-chips .chip {
+      background: var(--bg); padding: 3px 12px; border-radius: 30px;
+      font-size: 11px; font-weight: 500; color: var(--text-secondary);
+      border: 1px solid var(--border); cursor: pointer;
+      transition: var(--transition); font-family: inherit;
+    }
+    .cmd-chips .chip:hover {
+      background: var(--primary-light); border-color: var(--primary);
+      color: var(--primary);
+    }
+    .command-row {
+      display: flex; gap: 8px; margin-top: 8px;
+    }
+    .command-row input {
+      flex: 1; padding: 10px 14px; border: 2px solid var(--border);
+      border-radius: 60px; font-size: 14px; font-family: inherit;
+      background: white; transition: var(--transition);
+    }
+    .command-row input:focus {
+      border-color: var(--primary); outline: none;
+      box-shadow: 0 0 0 4px rgba(255,107,53,0.08);
+    }
+    .command-row .btn-send-cmd {
+      background: var(--whatsapp); color: white; border: none;
+      padding: 0 18px; border-radius: 60px; font-weight: 700;
+      font-size: 14px; cursor: pointer; transition: var(--transition);
+      font-family: inherit;
+    }
+    .command-row .btn-send-cmd:hover { background: var(--whatsapp-dark); }
+    /* ===== CHAT ===== */
+    .chat-box {
+      background: var(--bg); border-radius: var(--radius-sm);
+      padding: 12px 14px; max-height: 140px; overflow-y: auto;
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .chat-box .msg {
+      font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border);
+    }
+    .chat-box .msg:last-child { border-bottom: 0; }
+    .chat-box .msg .sender { font-weight: 600; }
+    .chat-box .msg .sender.you { color: var(--primary); }
+    .chat-box .msg .sender.driver { color: var(--whatsapp); }
+    .chat-box .msg .time {
+      font-size: 10px; color: var(--text-muted); margin-left: 6px;
+    }
+    .chat-box .msg.delivered { color: var(--success); font-weight: 600; }
+    /* ===== VERIFICATION LIST ===== */
+    .verification-list {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .verification-list .v-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .verification-list .v-item:last-child { border-bottom: 0; }
+    .v-item .v-icon { margin-right: 8px; width: 18px; text-align: center; }
+    .v-item .v-status { font-weight: 600; font-size: 12px; }
+    .v-status.verified { color: var(--success); }
+    .v-status.pending { color: var(--warning); }
+    /* ===== FORM ===== */
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block; font-weight: 600; font-size: 12px;
+      color: var(--text-secondary); margin-bottom: 3px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 14px; border: 2px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 14px;
+      font-family: inherit; background: #fcfaf8; transition: var(--transition);
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--primary); outline: none;
+      box-shadow: 0 0 0 4px rgba(255,107,53,0.08); background: white;
+    }
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text-primary); color: white;
+      padding: 12px 24px; border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 14px; box-shadow: var(--shadow-lg);
+      opacity: 0; transition: all 0.4s ease; pointer-events: none;
+      z-index: 999; max-width: 90%; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: var(--success); }
+    .toast.warning { background: var(--warning); color: var(--text-primary); }
+    .toast.error { background: var(--danger); }
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+      z-index: 1000; display: none; align-items: center;
+      justify-content: center; padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: white; border-radius: var(--radius-md);
+      padding: 24px 28px; max-width: 380px; width: 100%;
+      box-shadow: var(--shadow-lg); animation: slideUp 0.3s ease;
+    }
+    .modal-box h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .modal-box p {
+      color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;
+      white-space: pre-wrap;
+    }
+    .modal-box .modal-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .modal-box .modal-actions button {
+      padding: 10px 24px; border-radius: 60px; font-weight: 600;
+      font-size: 14px; cursor: pointer; border: none;
+      font-family: inherit; transition: var(--transition);
+    }
+    .modal-box .modal-actions .btn-cancel {
+      background: var(--bg); color: var(--text-secondary);
+    }
+    .modal-box .modal-actions .btn-cancel:hover { background: var(--border); }
+    .modal-box .modal-actions .btn-confirm {
+      background: var(--primary-gradient); color: white;
+      box-shadow: 0 6px 20px rgba(255,107,53,0.25);
+    }
+    .modal-box .modal-actions .btn-confirm:hover { transform: scale(1.02); }
+    /* ===== LOADING ===== */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255,255,255,0.9); display: flex;
+      align-items: center; justify-content: center; z-index: 9999;
+      flex-direction: column; gap: 12px;
+    }
+    .loading-overlay.hidden { display: none; }
+    .loading-spinner {
+      width: 40px; height: 40px; border: 4px solid var(--border);
+      border-top: 4px solid var(--primary); border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* ===== UTILITIES ===== */
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mb-8 { margin-bottom: 8px; }
+    .flex { display: flex; align-items: center; gap: 8px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .text-muted { color: var(--text-muted); }
+    .text-center { text-align: center; }
+    .w-full { width: 100%; }
+    .fs-12 { font-size: 12px; }
+    .fs-13 { font-size: 13px; }
+    .hidden { display: none !important; }
+    .restaurant-list { max-height: 320px; overflow-y: auto; }
+    .restaurant-list::-webkit-scrollbar { width: 3px; }
+    .restaurant-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    @media (max-width: 420px) {
+      .app-header .logo { font-size: 17px; }
+      .app-header .logo .sub { font-size: 9px; }
+      .header-actions .icon-btn { width: 34px; height: 34px; font-size: 14px; }
+      .header-actions .avatar { width: 34px; height: 34px; font-size: 12px; }
+      .card { padding: 12px 14px; }
+      .bottom-nav .nav-item { font-size: 9px; padding: 2px 6px; }
+      .bottom-nav .nav-item i { font-size: 18px; }
+      .whatsapp-bubble { font-size: 12px; padding: 12px 14px; }
+      .location-bar { padding: 8px 12px; font-size: 13px; }
+      .restaurant-item .r-icon { width: 42px; height: 42px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div style="font-weight:600;color:var(--text-secondary);">Loading...</div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ===== MODAL (confirm order) ===== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <h3 id="modalTitle">Confirm Order</h3>
+      <p id="modalBody">Are you sure you want to place this order?</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="modalCancel">Cancel</button>
+        <button class="btn-confirm" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAYMENT MODAL ===== -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-box">
+      <h3>💳 Payment Required</h3>
+      <p id="paymentBody">Please complete payment to confirm your order.</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="paymentCancel">Cancel</button>
+        <button class="btn-confirm" id="paymentWhatsApp">
+          <i class="fab fa-whatsapp"></i> Pay via WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APP ===== -->
+  <div class="app" id="app">
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+      <span class="time" id="statusTime">9:41</span>
+      <span><i class="fas fa-signal"></i> <i class="fas fa-wifi"></i> <i class="fas fa-battery-three-quarters"></i></span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="logo">
+        <i class="fas fa-utensils"></i>
+        <span>FastFood<span style="font-weight:400;">Guy</span></span>
+        <span class="sub">· delivery</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="notifBtn" aria-label="Notifications">
+          <i class="fas fa-bell"></i>
+          <span class="badge-dot" id="notifDot"></span>
+        </button>
+        <div class="avatar" id="avatarBtn">TM</div>
+        <button class="icon-btn" id="roleToggleBtn" aria-label="Switch to Driver" style="background:var(--primary-light);color:var(--primary);">
+          <i class="fas fa-motorcycle"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- CAP BANNER -->
+    <div style="padding:0 14px;">
+      <div class="cap-banner">
+        <span><i class="fas fa-shield-alt"></i> Delivery fee cap</span>
+        <span class="cap-amount">R80</span>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="app-content" id="appContent">
+
+      <!-- ===== CLIENT TAB ===== -->
+      <div id="tab-client" class="tab-panel active">
+        <div class="location-bar" id="locationBar">
+          <i class="fas fa-location-dot"></i>
+          <div class="loc-info" id="locInfo">
+            <span id="locName">Detecting location...</span>
+            <span class="sub" id="locSub">Enable GPS for nearby restaurants</span>
+          </div>
+          <button class="loc-btn" id="locBtn"><i class="fas fa-rotate"></i> Locate</button>
+        </div>
+        <div class="map-container" id="mapContainer">
+          <div id="map" style="width:100%;height:100%;"></div>
+          <div class="map-placeholder" id="mapPlaceholder">
+            <i class="fas fa-map-location-dot"></i>
+            <span>Loading map...</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-store"></i> Nearby Restaurants</h3>
+            <span class="card-action" id="refreshRestaurants"><i class="fas fa-rotate"></i> Refresh</span>
+          </div>
+          <div class="restaurant-list" id="restaurantList">
+            <div class="text-muted fs-13" style="padding:12px 0;text-align:center;">Searching for restaurants near you...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-clock-rotate-left"></i> Recent Orders</h3>
+            <button class="card-action" id="viewAllOrders">View all</button>
+          </div>
+          <div id="recentOrdersPreview">
+            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">No orders yet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== VENDOR TAB ===== -->
+      <div id="tab-vendor" class="tab-panel">
+        <!-- Auth Screen -->
+        <div id="vendorAuthScreen">
+          <div class="auth-box">
+            <h2 id="vendorAuthTitle">Vendor Login</h2>
+            <form id="vendorAuthForm">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="vendorAuthEmail" placeholder="vendor@restaurant.com" required />
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="vendorAuthPassword" placeholder="••••••••" required />
+              </div>
+              <div id="vendorNameField" class="form-group hidden">
+                <label>Business Name</label>
+                <input type="text" id="vendorAuthName" placeholder="Mama's Kitchen" />
+              </div>
+              <div id="vendorContactField" class="form-group hidden">
+                <label>Contact Person</label>
+                <input type="text" id="vendorAuthContact" placeholder="Grace Mokoena" />
+              </div>
+              <div id="vendorPhoneField" class="form-group hidden">
+                <label>Phone Number</label>
+                <input type="tel" id="vendorAuthPhone" placeholder="+27 82 444 5678" />
+              </div>
+              <div id="vendorAddressField" class="form-group hidden">
+                <label>Business Address</label>
+                <input type="text" id="vendorAuthAddress" placeholder="45 Bree Street, CBD, Johannesburg" />
+              </div>
+              <button type="submit" class="btn-primary-app w-full" id="vendorAuthBtn">Login</button>
+              <div class="text-center mt-8">
+                <span class="auth-toggle" id="toggleVendorAuth">Don't have an account? Register</span>
+              </div>
+            </form>
+          </div>
+        </div>
+        <!-- Dashboard -->
+        <div id="vendorDashboard" class="hidden">
+          <div class="flex-between" style="margin-bottom:12px;">
+            <div class="flex">
+              <span style="font-weight:700;" id="vendorNameDisplay">Welcome</span>
+              <span class="status-badge verified" id="vendorStatusBadge">Verified</span>
+            </div>
+            <button class="btn-outline-app" id="vendorLogoutBtn" style="padding:4px 16px;font-size:13px;">Logout</button>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3><i class="fas fa-store"></i> Profile</h3></div>
+            <form id="vendorProfileForm">
+              <div class="form-group">
+                <label>Business name</label>
+                <input type="text" id="vendorProfileName" />
+              </div>
+              <div class="form-group">
+                <label>Contact person</label>
+                <input type="text" id="vendorProfileContact" />
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="vendorProfilePhone" />
+              </div>
+              <div class="form-group">
+                <label>Address</label>
+                <input type="text" id="vendorProfileAddress" />
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="form-group">
+                  <label>Radius (km)</label>
+                  <input type="number" id="vendorProfileRadius" />
+                </div>
+                <div class="form-group">
+                  <label>Min. order (R)</label>
+                  <input type="number" id="vendorProfileMinOrder" />
+                </div>
+              </div>
+              <button type="button" class="btn-primary-app w-full" style="justify-content:center;" id="updateVendorProfileBtn"><i class="fas fa-save"></i> Update profile</button>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-utensil-spoon"></i> Your Menu</h3>
+              <div style="display:flex;gap:4px;">
+                <button class="btn-primary-app" style="padding:4px 14px;font-size:12px;" id="vendorAddMenuItemBtn"><i class="fas fa-plus"></i> Add</button>
+              </div>
+            </div>
+            <div id="vendorMenuList">
+              <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Loading menu...</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:10px;"><i class="fas fa-shield"></i> Verification</h3>
+            <div class="verification-list" id="vendorVerificationList">
+              <div class="v-item"><span><span class="v-icon">📄</span> Business registration</span><span class="v-status verified"><i class="fas fa-check-circle"></i> Verified</span></div>
+              <div class="v-item"><span><span class="v-icon">🆔</span> ID / Passport</span><span class="v-status verified"><i class="fas fa-check-circle"></i> Verified</span></div>
+              <div class="v-item"><span><span class="v-icon">📍</span> Proof of address</span><span class="v-status pending"><i class="fas fa-clock"></i> Pending</span></div>
+              <div class="v-item"><span><span class="v-icon">🍽️</span> Food safety</span><span class="v-status verified"><i class="fas fa-check-circle"></i> Verified</span></div>
+              <div class="v-item"><span><span class="v-icon">🏦</span> Bank account</span><span class="v-status pending"><i class="fas fa-clock"></i> Pending</span></div>
+            </div>
+            <button class="btn-success-app w-full" style="justify-content:center;margin-top:6px;" id="vendorUploadDocsBtn"><i class="fas fa-upload"></i> Upload documents</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ORDER (MENU) TAB ===== -->
+      <div id="tab-menu" class="tab-panel">
+        <div class="card" id="selectedRestaurantCard" style="display:none;">
+          <div class="flex-between">
+            <div>
+              <div style="font-weight:700;font-size:17px;" id="selectedRestName">Restaurant</div>
+              <div class="fs-13 text-muted" id="selectedRestAddr">Address</div>
+            </div>
+            <button class="btn-outline-app" style="padding:4px 14px;font-size:12px;" id="clearRestaurantBtn"><i class="fas fa-times"></i> Change</button>
+          </div>
+        </div>
+        <div class="card" id="menuItemsCard">
+          <div class="card-header">
+            <h3><i class="fas fa-utensil-spoon"></i> Menu</h3>
+            <span class="text-muted fs-12" id="menuCount">0 items</span>
+          </div>
+          <div id="menuItemsList">
+            <div class="text-muted fs-13" style="padding:12px 0;text-align:center;">Select a restaurant to view menu</div>
+          </div>
+        </div>
+        <div class="card" id="cartCard">
+          <div class="card-header">
+            <h3><i class="fas fa-shopping-cart"></i> Your Cart</h3>
+            <span class="text-muted fs-12" id="cartCount">0 items</span>
+          </div>
+          <div id="cartItems">
+            <div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Cart is empty</div>
+          </div>
+          <div class="cart-total" id="cartTotal" style="display:none;">
+            <span>Total</span>
+            <span>
+              <span class="delivery-fee">+ <span id="deliveryFeeDisplay">R80</span> delivery</span>
+              <span id="cartTotalAmount">R0</span>
+            </span>
+          </div>
+          <button class="btn-primary-app w-full" style="justify-content:center;margin-top:10px;" id="placeOrderBtn" disabled>
+            <i class="fas fa-credit-card"></i> Proceed to Payment
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== DRIVER TAB ===== -->
+      <div id="tab-driver" class="tab-panel">
+        <div id="driverAuthScreen">
+          <div class="auth-box">
+            <h2 id="driverAuthTitle">Driver Login</h2>
+            <form id="driverAuthForm">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="driverAuthEmail" placeholder="driver@delivery.com" required />
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="driverAuthPassword" placeholder="••••••••" required />
+              </div>
+              <div id="driverNameField" class="form-group hidden">
+                <label>Full name</label>
+                <input type="text" id="driverAuthName" placeholder="Sipho Mthembu" />
+              </div>
+              <div id="driverPhoneField" class="form-group hidden">
+                <label>Phone Number</label>
+                <input type="tel" id="driverAuthPhone" placeholder="+27 82 555 1234" />
+              </div>
+              <div id="driverVehicleField" class="form-group hidden">
+                <label>Vehicle type</label>
+                <input type="text" id="driverAuthVehicle" placeholder="Car / Scooter" />
+              </div>
+              <button type="submit" class="btn-primary-app w-full" id="driverAuthBtn">Login</button>
+              <div class="text-center mt-8">
+                <span class="auth-toggle" id="toggleDriverAuth">Don't have an account? Register</span>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div id="driverDashboard" class="hidden">
+          <div class="flex-between" style="margin-bottom:12px;">
+            <div class="flex">
+              <span style="font-weight:700;" id="driverNameDisplay">Welcome</span>
+              <span class="status-badge available" id="driverStatusBadge">Available</span>
+            </div>
+            <button class="btn-outline-app" id="driverLogoutBtn" style="padding:4px 16px;font-size:13px;">Logout</button>
+          </div>
+          <div class="tab-bar">
+            <button class="active" data-dtab="available">Available Orders</button>
+            <button data-dtab="myorders">My Orders</button>
+          </div>
+          <div id="driverAvailableOrders" class="driver-tab-content">
+            <div id="driverAvailableList">
+              <div class="text-muted text-center" style="padding:20px 0;">Loading orders...</div>
+            </div>
+          </div>
+          <div id="driverMyOrders" class="driver-tab-content hidden">
+            <div id="driverMyOrdersList">
+              <div class="text-muted text-center" style="padding:20px 0;">No orders assigned</div>
+            </div>
+          </div>
+          <div class="map-container" id="driverMapContainer">
+            <div id="driverMap" style="width:100%;height:100%;"></div>
+          </div>
+          <div id="driverMapOrderInfo" class="text-muted fs-13" style="text-align:center;margin-top:4px;">Select an order to view location</div>
+        </div>
+      </div>
+
+      <!-- ===== WHATSAPP TAB ===== -->
+      <div id="tab-whatsapp" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fab fa-whatsapp" style="color:var(--whatsapp);"></i> Send to Driver</h3>
+            <span style="font-size:11px;color:var(--text-muted);">Driver: Sipho</span>
+          </div>
+          <div class="whatsapp-bubble" id="whatsappMessage">
+            <span class="wa-icon"><i class="fab fa-whatsapp"></i> 🍔 FAST FOOD DELIVERY GUY</span>
+            ━━━━━━━━━━━━━━━━━━
+            👤 <span class="wa-highlight" id="waClientName">Thabo Mokoena</span>
+            📍 <span id="waClientAddress">12 Vilakazi St, Soweto</span>
+            📞 <span id="waClientPhone">082 555 1234</span>
+            🛒 <span id="waOrderItems">No items</span>
+            💰 Total: <span class="wa-highlight" id="waTotal">R0</span>
+            💵 Cash on delivery
+            ━━━━━━━━━━━━━━━━━━
+            Reply: <span class="wa-highlight">ACCEPT</span> · ETA 20min · DELIVERED
+            ✅ Fee capped at R80
+          </div>
+          <div class="whatsapp-actions">
+            <button class="btn-wa" id="sendWhatsAppBtn"><i class="fab fa-whatsapp"></i> Send Now</button>
+            <button class="btn-outline-app" id="editWhatsAppBtn"><i class="fas fa-edit"></i> Edit</button>
+          </div>
+          <div style="margin-top:10px;background:var(--success-bg);padding:8px 14px;border-radius:var(--radius-sm);font-size:12px;color:var(--success);display:flex;align-items:center;gap:6px;" id="whatsappStatus">
+            <i class="fas fa-check-circle"></i> Ready to send
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;"><i class="fas fa-robot"></i> Vendor commands</h3>
+          <p class="text-muted fs-12" style="margin-bottom:6px;">Update your menu via WhatsApp</p>
+          <div class="cmd-chips">
+            <span class="chip" data-cmd="ADD Spicy Chicken R55 Burgers"><code>ADD</code> item</span>
+            <span class="chip" data-cmd="EDIT Chicken Burger price R48"><code>EDIT</code> price</span>
+            <span class="chip" data-cmd="REMOVE Salad"><code>REMOVE</code> item</span>
+            <span class="chip" data-cmd="AVAILABLE Coke yes"><code>AVAILABLE</code></span>
+            <span class="chip" data-cmd="MENU"><code>MENU</code></span>
+            <span class="chip" data-cmd="STATS"><code>STATS</code></span>
+          </div>
+          <div class="command-row">
+            <input type="text" placeholder="Type a command…" id="cmdInput" />
+            <button class="btn-send-cmd" id="cmdSendBtn"><i class="fab fa-whatsapp"></i></button>
+          </div>
+          <div id="cmdResponse" class="fs-12 text-muted mt-8" style="display:none;background:var(--bg);padding:8px 12px;border-radius:var(--radius-sm);"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-comment-dots"></i> Live chat</h3>
+            <span style="font-size:11px;color:var(--text-muted);" id="chatDriverName">Driver: Sipho</span>
+          </div>
+          <div class="chat-box" id="chatBox">
+            <div class="msg"><span class="sender you">You:</span> Order #ORD-002 is ready for pickup <span class="time">12:20</span></div>
+            <div class="msg"><span class="sender driver">Sipho:</span> 🛵 On my way! ETA 10min <span class="time">12:22</span></div>
+            <div class="msg"><span class="sender you">You:</span> Great! Client at 12 Vilakazi St <span class="time">12:23</span></div>
+            <div class="msg delivered"><i class="fas fa-check-circle"></i> Delivered at 12:48</div>
+          </div>
+          <div class="command-row mt-8">
+            <input type="text" placeholder="Type a message…" id="chatInput" />
+            <button class="btn-send-cmd" id="chatSendBtn"><i class="fab fa-whatsapp"></i></button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /app-content -->
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="tab-client">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-tab="tab-vendor">
+        <i class="fas fa-store"></i>
+        <span>Vendor</span>
+      </button>
+      <button class="nav-item" data-tab="tab-menu">
+        <i class="fas fa-utensil-spoon"></i>
+        <span>Order</span>
+        <span class="nav-badge" id="orderBadge" style="display:none;">0</span>
+      </button>
+      <button class="nav-item" data-tab="tab-driver">
+        <i class="fas fa-motorcycle"></i>
+        <span>Driver</span>
+        <span class="nav-badge whatsapp-badge" id="driverBadge" style="display:none;">1</span>
+      </button>
+      <button class="nav-item" data-tab="tab-whatsapp">
+        <i class="fab fa-whatsapp"></i>
+        <span>WhatsApp</span>
+        <span class="nav-badge whatsapp-badge" id="whatsappBadge" style="display:none;">1</span>
+      </button>
+    </nav>
+
+  </div><!-- /app -->
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+
+  <script>
+    // ================================================================
+    //  🔥 SUPABASE CONFIGURATION – REPLACE WITH YOUR OWN!
+    // ================================================================
+    const SUPABASE_URL = 'https://your-project-id.supabase.co'        // <- CHANGE THIS
+    const SUPABASE_ANON_KEY = 'your-anon-key-here'                   // <- CHANGE THIS
+
+    // Initialize Supabase client (ONLY ONCE)
+    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    console.log('✅ Supabase initialized:', supabase)
+
+    // ================================================================
+    //  GLOBAL STATE
+    // ================================================================
+    let currentUser = null
+    let currentUserRole = null
+    let currentUserId = null
+    let appData = {}
+    let mapInstance = null
+    let mapMarker = null
+    let userLocation = null
+    let driverMapInstance = null
+    let realtimeChannel = null
+    let pendingOrderData = null
+
+    // ================================================================
+    //  DATA LAYER (local cache)
+    // ================================================================
+    const DEFAULT_DATA = {
+      client: { name: 'Thabo Mokoena', phone: '+27 82 555 1234', email: 'thabo.m@email.com', address: '12 Vilakazi Street, Soweto, Johannesburg', landmark: 'Near the church' },
+      vendor: { businessName: "Mama's Kitchen", contactPerson: 'Grace Mokoena', phone: '+27 82 444 5678', address: '45 Bree Street, CBD, Johannesburg', radius: 8, minOrder: 50, verified: false },
+      restaurants: [],
+      menu: [],
+      orders: [],
+      cart: [],
+      currentRestaurantId: null,
+      chatMessages: [],
+      location: { lat: null, lng: null, address: 'Detecting...' }
+    }
+
+    function loadData() {
+      const stored = localStorage.getItem('ffd_data')
+      if (stored) {
+        try {
+          appData = JSON.parse(stored)
+          for (const key in DEFAULT_DATA) {
+            if (!(key in appData)) appData[key] = JSON.parse(JSON.stringify(DEFAULT_DATA[key]))
+          }
+          return
+        } catch (e) { /* ignore */ }
+      }
+      appData = JSON.parse(JSON.stringify(DEFAULT_DATA))
+      saveData()
+    }
+    function saveData() {
+      localStorage.setItem('ffd_data', JSON.stringify(appData))
+    }
+    function getClient() { return appData.client || { name: 'Guest', phone: '', address: '' } }
+    function getCart() { return appData.cart || [] }
+    function getOrders() { return appData.orders || [] }
+
+    // ================================================================
+    //  AUTHENTICATION
+    // ================================================================
+    async function signUp(email, password, userData, role) {
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email, password,
+          options: { data: { role, name: userData.name || userData.businessName || 'User' } }
+        })
+        if (authError) throw authError
+        if (!authData.user) throw new Error('User creation failed')
+        const tableName = role === 'vendor' ? 'vendors' : role === 'driver' ? 'drivers' : 'clients'
+        const insertData = { id: authData.user.id, ...userData }
+        const { error: dbError } = await supabase.from(tableName).insert([insertData])
+        if (dbError) throw dbError
+        currentUser = authData.user; currentUserRole = role; currentUserId = authData.user.id
+        localStorage.setItem('supabaseSession', JSON.stringify({ user: authData.user, role }))
+        toast(`✅ ${role} registered successfully!`, 'success')
+        return { success: true, user: authData.user }
+      } catch (error) {
+        toast('❌ ' + error.message, 'error')
+        return { success: false, error: error.message }
+      }
+    }
+
+    async function signIn(email, password) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        const role = data.user.user_metadata?.role || 'client'
+        currentUser = data.user; currentUserRole = role; currentUserId = data.user.id
+        localStorage.setItem('supabaseSession', JSON.stringify({ user: data.user, role }))
+        toast('✅ Welcome back!', 'success')
+        return { success: true, user: data.user, role }
+      } catch (error) {
+        toast('❌ ' + error.message, 'error')
+        return { success: false, error: error.message }
+      }
+    }
+
+    async function signOut() {
+      try {
+        await supabase.auth.signOut()
+        currentUser = null; currentUserRole = null; currentUserId = null
+        localStorage.removeItem('supabaseSession')
+        if (realtimeChannel) { realtimeChannel.unsubscribe(); realtimeChannel = null }
+        toast('✅ Logged out', 'info')
+        window.location.reload()
+      } catch (error) { toast('❌ ' + error.message, 'error') }
+    }
+
+    async function checkSession() {
+      const sessionData = localStorage.getItem('supabaseSession')
+      if (sessionData) {
+        try {
+          const { user, role } = JSON.parse(sessionData)
+          const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+          if (error || !currentUser) { localStorage.removeItem('supabaseSession'); return null }
+          currentUser = currentUser; currentUserRole = role; currentUserId = currentUser.id
+          return { user: currentUser, role }
+        } catch (e) { return null }
+      }
+      return null
+    }
+
+    // ================================================================
+    //  DATA LOADING
+    // ================================================================
+    async function loadRestaurants() {
+      const { data, error } = await supabase.from('restaurants').select('*').eq('is_active', true).order('rating', { ascending: false })
+      if (error) throw error
+      appData.restaurants = data; saveData(); return data
+    }
+    async function loadMenuItems() {
+      const { data, error } = await supabase.from('menu_items').select('*').eq('available', true).order('category')
+      if (error) throw error
+      appData.menu = data; saveData(); return data
+    }
+    async function loadOrders() {
+      if (!currentUserId) return
+      let query = supabase.from('orders').select('*, restaurant:restaurant_id(name, address), items:order_items(*)').order('created_at', { ascending: false })
+      if (currentUserRole === 'client') query = query.eq('client_id', currentUserId)
+      else if (currentUserRole === 'vendor') {
+        const { data: restaurants } = await supabase.from('restaurants').select('id').eq('vendor_id', currentUserId)
+        const ids = restaurants.map(r => r.id)
+        if (ids.length) query = query.in('restaurant_id', ids)
+        else return []
+      } else if (currentUserRole === 'driver') query = query.eq('driver_id', currentUserId)
+      const { data, error } = await query
+      if (error) throw error
+      appData.orders = data; saveData(); return data
+    }
+    async function loadVendorData() {
+      if (currentUserRole !== 'vendor') return null
+      const { data, error } = await supabase.from('vendors').select('*').eq('id', currentUserId).single()
+      if (error) throw error
+      appData.vendor = data; saveData(); return data
+    }
+    async function loadDriverData() {
+      if (currentUserRole !== 'driver') return null
+      const { data, error } = await supabase.from('drivers').select('*').eq('id', currentUserId).single()
+      if (error) throw error
+      return data
+    }
+    async function loadAllData() {
+      try {
+        await loadRestaurants(); await loadMenuItems()
+        if (currentUser) {
+          await loadOrders()
+          if (currentUserRole === 'vendor') await loadVendorData()
+        }
+        renderOrderHistory(); renderVendorMenu(); renderMenu(); updateCartUI(); updateOrderBadge(); updateWhatsAppPreview()
+        if (userLocation) findNearbyRestaurants(userLocation.lat, userLocation.lng)
+      } catch (error) {
+        console.error('Error loading data:', error)
+        toast('Error loading data: ' + error.message, 'error')
+      }
+    }
+
+    // ================================================================
+    //  ORDER & PAYMENT
+    // ================================================================
+    function getDeliveryFee() { return 80 }
+    function getMinOrder() { return appData.vendor?.minOrder || 50 }
+    function calcCartTotal() {
+      const cart = getCart()
+      let subtotal = 0
+      for (const item of cart) {
+        const menuItem = appData.menu.find(m => m.id === item.menuId)
+        if (menuItem) subtotal += menuItem.price * item.qty
+      }
+      return { subtotal, delivery: getDeliveryFee(), total: subtotal + getDeliveryFee() }
+    }
+    function formatPrice(amount) { return `R${Math.round(amount)}` }
+
+    async function createOrder(orderData) {
+      const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
+      const orderNumber = String((count || 0) + 1).padStart(3, '0')
+      const orderId = `ORD-${orderNumber}`
+      const { data: order, error: orderError } = await supabase.from('orders').insert([{
+        order_id: orderId,
+        client_id: orderData.client_id,
+        restaurant_id: orderData.restaurant_id,
+        subtotal: orderData.subtotal,
+        delivery_fee: orderData.delivery_fee,
+        total: orderData.total,
+        client_address: orderData.client_address,
+        client_phone: orderData.client_phone,
+        status: 'pending',
+        payment_status: 'pending'
+      }]).select().single()
+      if (orderError) throw orderError
+      const orderItems = orderData.items.map(item => ({
+        order_id: order.id,
+        menu_item_id: item.menu_item_id,
+        name: item.name,
+        qty: item.qty,
+        price: item.price
+      }))
+      const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+      if (itemsError) throw itemsError
+      return order
+    }
+
+    function showPaymentModal(orderData) {
+      pendingOrderData = orderData
+      const modal = document.getElementById('paymentModal')
+      const body = document.getElementById('paymentBody')
+      const itemsText = orderData.items.map(i => `${i.qty}× ${i.name}`).join(', ')
+      body.innerHTML = `
+        <strong>Order Summary:</strong>\n${itemsText}\n
+        <strong>Subtotal:</strong> ${formatPrice(orderData.subtotal)}
+        <strong>Delivery:</strong> ${formatPrice(orderData.delivery_fee)}
+        <strong>Total:</strong> ${formatPrice(orderData.total)}
+        \n💵 Please complete payment via WhatsApp to confirm your order.
+      `
+      modal.classList.add('active')
+    }
+
+    function processWhatsAppPayment() {
+      if (!pendingOrderData) return
+      document.getElementById('paymentModal').classList.remove('active')
+      createOrderInSupabase(pendingOrderData)
+    }
+
+    async function createOrderInSupabase(orderData) {
+      try {
+        const order = await createOrder(orderData)
+        appData.cart = []; saveData()
+        toast(`✅ Order ${order.order_id} placed!`, 'success')
+        const driverPhone = '+27788682541'
+        const client = getClient()
+        const restaurant = appData.restaurants.find(r => r.id === orderData.restaurant_id)
+        const itemsText = orderData.items.map(i => `${i.qty}× ${i.name}`).join(', ')
+        const message =
+          `🍔 FAST FOOD DELIVERY GUY - NEW ORDER! 🛵\n\n━━━━━━━━━━━━━━━━━━\n👤 Client: ${client.name}\n📍 Address: ${orderData.client_address}\n📞 Phone: ${orderData.client_phone}\n\n🍽️ Restaurant: ${restaurant?.name || 'Unknown'}\n\n🛒 Order:\n${itemsText}\n\n💰 Subtotal: ${formatPrice(orderData.subtotal)}\n🚚 Delivery: ${formatPrice(orderData.delivery_fee)}\n💳 Total: ${formatPrice(orderData.total)}\n💵 Cash on Delivery\n\n━━━━━━━━━━━━━━━━━━\n📱 Please confirm order and provide ETA\n✅ Delivery fee capped at R80`
+        const encoded = encodeURIComponent(message)
+        window.open(`https://wa.me/${driverPhone.replace('+','')}?text=${encoded}`, '_blank')
+        renderMenu(); updateCartUI(); updateOrderBadge(); renderOrderHistory(); updateWhatsAppPreview()
+        document.getElementById('driverBadge').style.display = 'flex'
+        document.getElementById('driverBadge').textContent = '1'
+        pendingOrderData = null
+      } catch (error) {
+        toast('❌ ' + error.message, 'error')
+      }
+    }
+
+    function placeOrder() {
+      const cart = getCart()
+      if (cart.length === 0) { toast('Cart is empty', 'error'); return }
+      const { subtotal, delivery, total } = calcCartTotal()
+      const minOrder = getMinOrder()
+      if (subtotal < minOrder) { toast(`Minimum order is ${formatPrice(minOrder)}`, 'error'); return }
+      if (!currentUser) { toast('Please login to place an order', 'error'); return }
+      const restaurant = appData.restaurants.find(r => r.id === appData.currentRestaurantId)
+      const client = getClient()
+      const orderData = {
+        client_id: currentUserId,
+        restaurant_id: restaurant?.id || null,
+        subtotal, delivery_fee: delivery, total,
+        client_address: client.address || 'No address',
+        client_phone: client.phone || 'No phone',
+        items: cart.map(c => {
+          const item = appData.menu.find(m => m.id === c.menuId)
+          return { menu_item_id: c.menuId, name: item?.name || 'Unknown', qty: c.qty, price: item?.price || 0 }
+        })
+      }
+      showPaymentModal(orderData)
+    }
+
+    // ================================================================
+    //  VENDOR FUNCTIONS
+    // ================================================================
+    async function addMenuItem(name, price, description, category) {
+      if (currentUserRole !== 'vendor') { toast('Only vendors can add items', 'error'); return }
+      try {
+        const { data, error } = await supabase.from('menu_items').insert([{
+          vendor_id: currentUserId, name, description: description || '', price, category: category || 'General',
+          available: true, popular: false
+        }]).select().single()
+        if (error) throw error
+        appData.menu.push(data); saveData(); renderVendorMenu(); renderMenu()
+        toast(`✅ "${name}" added to menu`, 'success')
+      } catch (error) { toast('❌ ' + error.message, 'error') }
+    }
+
+    async function updateMenuItem(itemId, updates) {
+      if (currentUserRole !== 'vendor') return
+      try {
+        const { data, error } = await supabase.from('menu_items').update({ ...updates, updated_at: new Date() })
+          .eq('id', itemId).eq('vendor_id', currentUserId).select().single()
+        if (error) throw error
+        const idx = appData.menu.findIndex(m => m.id === itemId)
+        if (idx !== -1) { appData.menu[idx] = data; saveData(); renderVendorMenu(); renderMenu(); toast('✅ Item updated', 'success') }
+      } catch (error) { toast('❌ ' + error.message, 'error') }
+    }
+
+    async function deleteMenuItem(itemId) {
+      if (currentUserRole !== 'vendor') return
+      if (!confirm('Remove this item from menu?')) return
+      try {
+        const { error } = await supabase.from('menu_items').delete().eq('id', itemId).eq('vendor_id', currentUserId)
+        if (error) throw error
+        appData.menu = appData.menu.filter(m => m.id !== itemId); saveData(); renderVendorMenu(); renderMenu()
+        toast('✅ Item removed', 'success')
+      } catch (error) { toast('❌ ' + error.message, 'error') }
+    }
+
+    // ================================================================
+    //  DRIVER FUNCTIONS
+    // ================================================================
+    async function loadDriverAvailableOrders() {
+      const { data, error } = await supabase.from('orders')
+        .select('*, restaurant:restaurant_id(name, address), client:client_id(name, phone)')
+        .in('status', ['pending', 'preparing']).is('driver_id', null).eq('payment_status', 'completed')
+        .order('created_at', { ascending: true })
+      if (error) { toast('Error loading orders: ' + error.message, 'error'); return }
+      const container = document.getElementById('driverAvailableList')
+      if (data.length === 0) { container.innerHTML = '<div class="text-muted text-center" style="padding:20px 0;">No orders available</div>'; return }
+      let html = ''
+      for (const order of data) html += renderDriverOrderCard(order, 'available')
+      container.innerHTML = html
+      container.querySelectorAll('.btn-accept').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const orderId = this.dataset.orderId
+          await acceptOrder(orderId)
+        })
+      })
+      container.querySelectorAll('.order-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const orderId = this.dataset.orderId
+          const order = data.find(o => o.id === orderId)
+          if (order) updateDriverMapForOrder(order)
+        })
+      })
+    }
+
+    async function acceptOrder(orderId) {
+      try {
+        const { data, error } = await supabase.from('orders').update({
+          driver_id: currentUserId, assigned_at: new Date(), status: 'preparing'
+        }).eq('id', orderId).eq('status', 'pending').select().single()
+        if (error) throw error
+        await supabase.from('drivers').update({ status: 'busy' }).eq('id', currentUserId)
+        toast('✅ Order accepted!', 'success')
+        loadDriverAvailableOrders(); loadDriverMyOrders(); renderOrderHistory()
+      } catch (error) { toast('❌ ' + error.message, 'error') }
+    }
+
+    async function loadDriverMyOrders() {
+      const { data, error } = await supabase.from('orders')
+        .select('*, restaurant:restaurant_id(name, address), client:client_id(name, phone)')
+        .eq('driver_id', currentUserId).in('status', ['preparing', 'transit'])
+        .order('created_at', { ascending: true })
+      if (error) { toast('Error loading orders: ' + error.message, 'error'); return }
+      const container = document.getElementById('driverMyOrdersList')
+      if (data.length === 0) { container.innerHTML = '<div class="text-muted text-center" style="padding:20px 0;">No active orders</div>'; return }
+      let html = ''
+      for (const order of data) html += renderDriverOrderCard(order, 'my')
+      container.innerHTML = html
+      container.querySelectorAll('.btn-transit').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const orderId = this.dataset.orderId
+          await updateDriverOrderStatus(orderId, 'transit')
+        })
+      })
+      container.querySelectorAll('.btn-deliver').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const orderId = this.dataset.orderId
+          await updateDriverOrderStatus(orderId, 'delivered')
+        })
+      })
+      container.querySelectorAll('.order-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const orderId = this.dataset.orderId
+          const order = data.find(o => o.id === orderId)
+          if (order) updateDriverMapForOrder(order)
+        })
+      })
+    }
+
+    async function updateDriverOrderStatus(orderId, status) {
+      try {
+        const updateData = { status, ...(status === 'transit' ? { picked_up_at: new Date() } : {}), ...(status === 'delivered' ? { delivered_at: new Date() } : {}) }
+        const { data, error } = await supabase.from('orders').update(updateData).eq('id', orderId).eq('driver_id', currentUserId).select().single()
+        if (error) throw error
+        if (status === 'delivered') {
+          await supabase.from('drivers').update({ status: 'available' }).eq('id', currentUserId)
+          document.getElementById('driverStatusBadge').textContent = 'Available'
+          document.getElementById('driverStatusBadge').className = 'status-badge available'
+        }
+        toast(`✅ Order ${status}!`, 'success')
+        loadDriverMyOrders(); loadDriverAvailableOrders(); renderOrderHistory()
+      } catch (error) { toast('❌ ' + error.message, 'error') }
+    }
+
+    function renderDriverOrderCard(order, type) {
+      const statusClass = order.status === 'pending' ? 'pending' : order.status === 'preparing' ? 'preparing' : order.status === 'transit' ? 'transit' : ''
+      const statusLabel = order.status.charAt(0).toUpperCase() + order.status.slice(1)
+      const itemsText = order.items?.map(i => `${i.qty}× ${i.name}`).join(', ') || 'No items'
+      let actions = ''
+      if (type === 'available') actions = `<button class="btn-accept" data-order-id="${order.id}">Accept</button>`
+      else {
+        if (order.status === 'preparing') actions = `<button class="btn-transit" data-order-id="${order.id}">🚗 Pick Up</button>`
+        else if (order.status === 'transit') actions = `<button class="btn-deliver" data-order-id="${order.id}">✅ Deliver</button>`
+        else actions = `<span class="text-muted">Completed</span>`
+      }
+      return `
+        <div class="order-card" data-order-id="${order.id}">
+          <div class="order-header">
+            <span class="order-id">${order.order_id || order.id}</span>
+            <span class="order-status ${statusClass}">${statusLabel}</span>
+          </div>
+          <div class="order-details"><strong>${order.restaurant?.name || 'Restaurant'}</strong></div>
+          <div class="order-details">${itemsText}</div>
+          <div class="order-details">Client: ${order.client?.name || 'Client'} – ${order.client_address}</div>
+          <div class="order-details">Total: R${order.total} (Delivery: R${order.delivery_fee})</div>
+          <div class="order-actions">${actions}</div>
+        </div>
+      `
+    }
+
+    // ================================================================
+    //  REAL-TIME SUBSCRIPTIONS
+    // ================================================================
+    function setupRealtimeSubscriptions() {
+      if (realtimeChannel) realtimeChannel.unsubscribe()
+      realtimeChannel = supabase
+        .channel('db-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+          console.log('Order update:', payload)
+          if (payload.eventType === 'INSERT') appData.orders.unshift(payload.new)
+          else if (payload.eventType === 'UPDATE') {
+            const idx = appData.orders.findIndex(o => o.id === payload.new.id)
+            if (idx !== -1) appData.orders[idx] = payload.new
+            else appData.orders.push(payload.new)
+          } else if (payload.eventType === 'DELETE') appData.orders = appData.orders.filter(o => o.id !== payload.old.id)
+          saveData(); renderOrderHistory()
+          if (currentUserRole === 'driver') { loadDriverAvailableOrders(); loadDriverMyOrders() }
+          toast('🔄 Order updated!', 'info')
+        })
+        .subscribe((status) => console.log('Realtime status:', status))
+    }
+
+    // ================================================================
+    //  MAP & LOCATION
+    // ================================================================
+    function initMap() {
+      const container = document.getElementById('map')
+      const placeholder = document.getElementById('mapPlaceholder')
+      try {
+        if (typeof L !== 'undefined') {
+          const center = userLocation || { lat: -26.2041, lng: 28.0473 }
+          mapInstance = L.map('map', { center: [center.lat, center.lng], zoom: 14, zoomControl: false, attributionControl: false })
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '' }).addTo(mapInstance)
+          mapMarker = L.marker([center.lat, center.lng], { draggable: false }).addTo(mapInstance)
+          placeholder.style.display = 'none'
+          mapInstance.invalidateSize()
+          addRestaurantMarkers()
+          mapInstance.on('click', function(e) {
+            const lat = e.latlng.lat, lng = e.latlng.lng
+            userLocation = { lat, lng }; appData.location.lat = lat; appData.location.lng = lng; saveData()
+            updateMap(lat, lng); findNearbyRestaurants(lat, lng); toast('📍 Location updated from map', 'success')
+          })
+        } else { placeholder.innerHTML = '<i class="fas fa-map"></i><span>Map unavailable</span>' }
+      } catch (e) { console.warn('Map error:', e); placeholder.innerHTML = '<i class="fas fa-map"></i><span>Map loading failed</span>' }
+    }
+
+    function updateMap(lat, lng) {
+      if (mapInstance) {
+        mapInstance.setView([lat, lng], 14)
+        if (mapMarker) mapMarker.setLatLng([lat, lng])
+        else mapMarker = L.marker([lat, lng], { draggable: false }).addTo(mapInstance)
+        addRestaurantMarkers()
+        setTimeout(() => mapInstance.invalidateSize(), 300)
+      }
+    }
+
+    function addRestaurantMarkers() {
+      if (!mapInstance) return
+      mapInstance.eachLayer((layer) => { if (layer instanceof L.Marker && layer !== mapMarker) mapInstance.removeLayer(layer) })
+      for (const r of appData.restaurants) {
+        if (r.lat && r.lng) {
+          const marker = L.marker([r.lat, r.lng], {
+            icon: L.divIcon({
+              html: `<div style="background:var(--primary);color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 12px rgba(255,107,53,0.3);border:2px solid white;">${r.image || '🍔'}</div>`,
+              className: '', iconSize: [28,28], iconAnchor: [14,14]
+            })
+          }).addTo(mapInstance)
+          marker.bindPopup(`<strong>${r.name}</strong><br>${r.address}<br>⭐ ${r.rating}`)
+        }
+      }
+    }
+
+    function initDriverMap() {
+      const container = document.getElementById('driverMap')
+      if (typeof L !== 'undefined' && container) {
+        driverMapInstance = L.map('driverMap', { center: [-26.2041, 28.0473], zoom: 13, zoomControl: false, attributionControl: false })
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '' }).addTo(driverMapInstance)
+        driverMapInstance.invalidateSize()
+      }
+    }
+
+    function updateDriverMapForOrder(order) {
+      if (!driverMapInstance) initDriverMap()
+      if (!driverMapInstance) return
+      driverMapInstance.eachLayer((layer) => { if (layer instanceof L.Marker) driverMapInstance.removeLayer(layer) })
+      const bounds = []
+      const restaurant = order.restaurant
+      if (restaurant && restaurant.lat && restaurant.lng) {
+        const rMarker = L.marker([restaurant.lat, restaurant.lng], {
+          icon: L.divIcon({
+            html: `<div style="background:#ff6b35;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;">🍔</div>`,
+            className: '', iconSize: [28,28], iconAnchor: [14,14]
+          })
+        }).addTo(driverMapInstance)
+        rMarker.bindPopup(`<strong>${restaurant.name}</strong><br>${restaurant.address}`)
+        bounds.push([restaurant.lat, restaurant.lng])
+      }
+      if (order.client_address) {
+        const offsetLat = (restaurant?.lat || -26.2041) + 0.01
+        const offsetLng = (restaurant?.lng || 28.0473) + 0.005
+        const cMarker = L.marker([offsetLat, offsetLng], {
+          icon: L.divIcon({
+            html: `<div style="background:#25d366;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;">📦</div>`,
+            className: '', iconSize: [28,28], iconAnchor: [14,14]
+          })
+        }).addTo(driverMapInstance)
+        cMarker.bindPopup(`<strong>${order.client?.name || 'Client'}</strong><br>${order.client_address}`)
+        bounds.push([offsetLat, offsetLng])
+        document.getElementById('driverMapOrderInfo').textContent = `📍 Client: ${order.client?.name || 'Client'} – ${order.client_address}`
+      }
+      if (bounds.length > 0) driverMapInstance.fitBounds(bounds, { padding: [30,30] })
+      setTimeout(() => driverMapInstance.invalidateSize(), 300)
+    }
+
+    // ================================================================
+    //  LOCATION & RESTAURANTS
+    // ================================================================
+    function getLocation() {
+      const btn = document.getElementById('locBtn')
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+            appData.location.lat = userLocation.lat; appData.location.lng = userLocation.lng; saveData()
+            updateLocationUI(); updateMap(userLocation.lat, userLocation.lng); findNearbyRestaurants(userLocation.lat, userLocation.lng)
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-rotate"></i> Locate'
+            toast('📍 Location updated!', 'success')
+          },
+          (err) => {
+            console.warn('Geolocation error:', err)
+            userLocation = { lat: -26.2041, lng: 28.0473 }
+            appData.location.lat = userLocation.lat; appData.location.lng = userLocation.lng; saveData()
+            updateLocationUI(); updateMap(userLocation.lat, userLocation.lng); findNearbyRestaurants(userLocation.lat, userLocation.lng)
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-rotate"></i> Locate'
+            toast('📍 Using approximate location (Johannesburg)', 'warning')
+          }, { enableHighAccuracy: true, timeout: 10000 }
+        )
+      } else {
+        userLocation = { lat: -26.2041, lng: 28.0473 }
+        appData.location.lat = userLocation.lat; appData.location.lng = userLocation.lng; saveData()
+        updateLocationUI(); updateMap(userLocation.lat, userLocation.lng); findNearbyRestaurants(userLocation.lat, userLocation.lng)
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-rotate"></i> Locate'
+        toast('📍 Using approximate location', 'warning')
+      }
+    }
+
+    function updateLocationUI() {
+      const loc = appData.location
+      const nameEl = document.getElementById('locName'), subEl = document.getElementById('locSub')
+      if (loc.address && loc.address !== 'Detecting...') {
+        nameEl.textContent = loc.address
+        subEl.textContent = `📍 ${loc.lat ? loc.lat.toFixed(4) : '?'}, ${loc.lng ? loc.lng.toFixed(4) : '?'}`
+      } else if (loc.lat && loc.lng) {
+        nameEl.textContent = `📍 ${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`
+        subEl.textContent = 'Tap "Locate" for address'
+      } else {
+        nameEl.textContent = 'Detecting location...'
+        subEl.textContent = 'Enable GPS for nearby restaurants'
+      }
+    }
+
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371
+      const dLat = (lat2 - lat1) * Math.PI / 180
+      const dLon = (lon2 - lon1) * Math.PI / 180
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    }
+
+    function findNearbyRestaurants(lat, lng) {
+      const list = document.getElementById('restaurantList')
+      if (!lat || !lng) {
+        list.innerHTML = '<div class="text-muted fs-13" style="padding:12px 0;text-align:center;">Enable location to see nearby restaurants</div>'
+        return
+      }
+      const withDistance = appData.restaurants.map(r => ({ ...r, distance: haversineDistance(lat, lng, r.lat, r.lng) }))
+      withDistance.sort((a,b) => a.distance - b.distance)
+      if (withDistance.length === 0) {
+        list.innerHTML = '<div class="text-muted fs-13" style="padding:12px 0;text-align:center;">No restaurants found nearby</div>'
+        return
+      }
+      let html = ''
+      for (const r of withDistance) {
+        const distText = r.distance < 1 ? `${Math.round(r.distance * 1000)}m` : `${r.distance.toFixed(1)}km`
+        const fee = getDeliveryFee()
+        html += `
+          <div class="restaurant-item" data-id="${r.id}">
+            <div class="r-icon">${r.image || '🍔'}</div>
+            <div class="r-info">
+              <div class="r-name">${r.name}</div>
+              <div class="r-meta">
+                <span>⭐ ${r.rating}</span>
+                <span>·</span>
+                <span>${r.cuisine}</span>
+                <span>·</span>
+                <span class="r-distance"><i class="fas fa-location-dot"></i> ${distText}</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="r-fee">${formatPrice(fee)} delivery</div>
+              <div style="font-size:11px;color:var(--text-muted);">min ${formatPrice(r.minOrder || 50)}</div>
+            </div>
+          </div>
+        `
+      }
+      list.innerHTML = html
+      list.querySelectorAll('.restaurant-item').forEach(el => {
+        el.addEventListener('click', function() {
+          const id = this.dataset.id
+          selectRestaurant(id)
+        })
+      })
+    }
+
+    function selectRestaurant(restaurantId) {
+      const restaurant = appData.restaurants.find(r => r.id === restaurantId)
+      if (!restaurant) return
+      appData.currentRestaurantId = restaurantId; saveData()
+      const card = document.getElementById('selectedRestaurantCard')
+      card.style.display = 'block'
+      document.getElementById('selectedRestName').textContent = restaurant.name
+      document.getElementById('selectedRestAddr').textContent = restaurant.address
+      renderMenu()
+      switchTab('tab-menu')
+      toast(`🍽️ ${restaurant.name} selected`, 'success')
+    }
+
+    // ================================================================
+    //  MENU & CART
+    // ================================================================
+    function renderMenu() {
+      const list = document.getElementById('menuItemsList')
+      const restaurant = appData.restaurants.find(r => r.id === appData.currentRestaurantId)
+      const menuItems = appData.menu.filter(item => item.available)
+      if (!restaurant) {
+        list.innerHTML = '<div class="text-muted fs-13" style="padding:12px 0;text-align:center;">Select a restaurant to view menu</div>'
+        document.getElementById('menuCount').textContent = '0 items'
+        return
+      }
+      document.getElementById('menuCount').textContent = `${menuItems.length} items`
+      if (menuItems.length === 0) {
+        list.innerHTML = '<div class="text-muted fs-13" style="padding:12px 0;text-align:center;">No items available</div>'
+        return
+      }
+      let html = ''
+      for (const item of menuItems) {
+        const inCart = appData.cart.find(c => c.menuId === item.id)
+        const qty = inCart ? inCart.qty : 0
+        html += `
+          <div class="menu-item-row" data-id="${item.id}">
+            <div class="mi-left">
+              <div class="mi-name">${item.name} ${item.popular ? '🔥' : ''}</div>
+              <div class="mi-desc">${item.description || ''}</div>
+            </div>
+            <div class="mi-right">
+              <span class="mi-price">${formatPrice(item.price)}</span>
+              <button class="mi-add ${qty > 0 ? 'added' : ''}" data-id="${item.id}">
+                ${qty > 0 ? qty : '+'}
+              </button>
+            </div>
+          </div>
+        `
+      }
+      list.innerHTML = html
+      list.querySelectorAll('.mi-add').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation()
+          const id = this.dataset.id
+          toggleCartItem(id)
+        })
+      })
+      updateCartUI()
+    }
+
+    function toggleCartItem(menuId) {
+      const idx = appData.cart.findIndex(c => c.menuId === menuId)
+      if (idx >= 0) {
+        if (appData.cart[idx].qty > 1) appData.cart[idx].qty--
+        else appData.cart.splice(idx, 1)
+      } else appData.cart.push({ menuId, qty: 1 })
+      saveData(); renderMenu(); updateCartUI(); updateOrderBadge()
+    }
+
+    function updateCartUI() {
+      const container = document.getElementById('cartItems')
+      const totalEl = document.getElementById('cartTotal')
+      const count = appData.cart.reduce((sum, c) => sum + c.qty, 0)
+      document.getElementById('cartCount').textContent = `${count} items`
+      if (count === 0) {
+        container.innerHTML = '<div class="text-muted fs-13" style="padding:8px 0;text-align:center;">Cart is empty</div>'
+        totalEl.style.display = 'none'
+        document.getElementById('placeOrderBtn').disabled = true
+        return
+      }
+      let html = ''
+      for (const c of appData.cart) {
+        const item = appData.menu.find(m => m.id === c.menuId)
+        if (!item) continue
+        html += `
+          <div class="cart-item">
+            <div class="ci-left">
+              <span class="ci-qty">${c.qty}×</span>
+              <span>${item.name}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span>${formatPrice(item.price * c.qty)}</span>
+              <button class="ci-remove" data-id="${item.id}"><i class="fas fa-minus-circle"></i></button>
+            </div>
+          </div>
+        `
+      }
+      container.innerHTML = html
+      container.querySelectorAll('.ci-remove').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = this.dataset.id
+          const idx = appData.cart.findIndex(c => c.menuId === id)
+          if (idx >= 0) {
+            if (appData.cart[idx].qty > 1) appData.cart[idx].qty--
+            else appData.cart.splice(idx, 1)
+            saveData(); renderMenu(); updateCartUI(); updateOrderBadge()
+          }
+        })
+      })
+      const { subtotal, delivery, total } = calcCartTotal()
+      totalEl.style.display = 'flex'
+      document.getElementById('deliveryFeeDisplay').textContent = formatPrice(delivery)
+      document.getElementById('cartTotalAmount').textContent = formatPrice(total)
+      const minOrder = getMinOrder()
+      const btn = document.getElementById('placeOrderBtn')
+      if (subtotal < minOrder) {
+        btn.disabled = true
+        btn.innerHTML = `<i class="fas fa-exclamation-circle"></i> Min order ${formatPrice(minOrder)} (${formatPrice(subtotal)})`
+      } else {
+        btn.disabled = false
+        btn.innerHTML = `<i class="fas fa-credit-card"></i> Proceed to Payment — ${formatPrice(total)}`
+      }
+      updateWhatsAppPreview()
+    }
+
+    function updateOrderBadge() {
+      const count = appData.cart.reduce((sum, c) => sum + c.qty, 0)
+      const badge = document.getElementById('orderBadge')
+      if (count > 0) { badge.style.display = 'flex'; badge.textContent = count } else { badge.style.display = 'none' }
+    }
+
+    // ================================================================
+    //  WHATSAPP
+    // ================================================================
+    function updateWhatsAppPreview() {
+      const client = getClient()
+      document.getElementById('waClientName').textContent = client.name || 'Client'
+      document.getElementById('waClientAddress').textContent = client.address || 'No address'
+      document.getElementById('waClientPhone').textContent = client.phone || 'No phone'
+      if (appData.cart.length === 0) {
+        document.getElementById('waOrderItems').textContent = 'No items in cart'
+        document.getElementById('waTotal').textContent = 'R0'
+        document.getElementById('sendWhatsAppBtn').disabled = true
+        return
+      }
+      const items = appData.cart.map(c => { const item = appData.menu.find(m => m.id === c.menuId); return item ? `${c.qty}× ${item.name}` : '' }).filter(Boolean).join(', ')
+      document.getElementById('waOrderItems').textContent = items
+      const { total } = calcCartTotal()
+      document.getElementById('waTotal').textContent = formatPrice(total)
+      document.getElementById('sendWhatsAppBtn').disabled = false
+    }
+
+    function addChatMessage(sender, text) {
+      const box = document.getElementById('chatBox')
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const senderClass = sender === 'you' ? 'you' : sender === 'driver' ? 'driver' : ''
+      const isSystem = sender === 'system'
+      const msg = document.createElement('div')
+      msg.className = 'msg' + (isSystem ? ' delivered' : '')
+      msg.innerHTML = isSystem ? `<i class="fas fa-check-circle"></i> ${text}` : `<span class="sender ${senderClass}">${sender === 'you' ? 'You' : sender === 'driver' ? 'Sipho' : ''}:</span> ${text} <span class="time">${time}</span>`
+      box.appendChild(msg); box.scrollTop = box.scrollHeight
+      appData.chatMessages.push({ sender, text, time }); saveData()
+    }
+
+    // ================================================================
+    //  ORDER HISTORY
+    // ================================================================
+    function renderOrderHistory() {
+      const container = document.getElementById('recentOrdersPreview')
+      const orders = appData.orders || []
+      if (orders.length === 0) { container.innerHTML = '<div class="text-muted fs-13" style="padding:8px 0;text-align:center;">No orders yet</div>'; return }
+      const recent = orders.slice(0, 3)
+      let html = ''
+      for (const o of recent) {
+        const statusClass = o.status === 'delivered' ? 'delivered' : o.status === 'transit' ? 'transit' : o.status === 'preparing' ? 'preparing' : 'cancelled'
+        const statusLabel = o.status === 'delivered' ? '✓ Delivered' : o.status === 'transit' ? '⏳ In transit' : o.status === 'preparing' ? '⏱️ Preparing' : '✕ Cancelled'
+        const itemsText = o.items?.map(i => `${i.qty}× ${i.name}`).join(', ') || 'No items'
+        html += `
+          <div class="order-history-item">
+            <div class="oh-left">
+              <span class="oh-id">${o.order_id || o.id}</span>
+              <span class="oh-rest">${o.restaurant?.name || 'Restaurant'} · ${itemsText}</span>
+            </div>
+            <div class="oh-right">
+              <div class="oh-total">${formatPrice(o.total)}</div>
+              <span class="oh-status ${statusClass}">${statusLabel}</span>
+            </div>
+          </div>
+        `
+      }
+      container.innerHTML = html
+      document.getElementById('viewAllOrders').onclick = function() {
+        const allOrders = appData.orders || []
+        if (allOrders.length === 0) { toast('No orders yet', 'warning'); return }
+        let msg = '📋 All Orders:\n\n'
+        for (const o of allOrders) {
+          const items = o.items?.map(i => `${i.qty}× ${i.name}`).join(', ') || 'No items'
+          msg += `${o.order_id || o.id} | ${o.restaurant?.name || 'Restaurant'} | ${items} | ${formatPrice(o.total)} | ${o.status}\n`
+        }
+        toast(msg, 'info')
+      }
+    }
+
+    // ================================================================
+    //  VENDOR UI
+    // ================================================================
+    function renderVendorMenu() {
+      const container = document.getElementById('vendorMenuList')
+      const menu = appData.menu || []
+      if (menu.length === 0) { container.innerHTML = '<div class="text-muted fs-13" style="padding:8px 0;text-align:center;">No menu items yet</div>'; return }
+      let html = ''
+      for (const item of menu) {
+        const statusClass = item.available ? 'available' : 'unavailable'
+        const statusLabel = item.available ? 'Available' : 'Unavailable'
+        html += `
+          <div class="menu-item-row" data-id="${item.id}">
+            <div class="mi-left">
+              <div class="mi-name">${item.name} ${item.popular ? '🔥' : ''}</div>
+              <div class="mi-desc">${item.description || ''} · ${item.category || 'General'}</div>
+            </div>
+            <div class="mi-right">
+              <span class="mi-price">${formatPrice(item.price)}</span>
+              <span style="font-size:11px;font-weight:600;padding:2px 10px;border-radius:30px;background:${item.available ? 'var(--success-bg)' : 'var(--danger-bg)'};color:${item.available ? 'var(--success)' : 'var(--danger)'};">${statusLabel}</span>
+              <div style="display:flex;gap:3px;">
+                <button class="vendor-edit-btn" data-id="${item.id}" style="background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;transition:var(--transition);"><i class="fas fa-edit" style="font-size:12px;"></i></button>
+                <button class="vendor-toggle-btn" data-id="${item.id}" style="background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;transition:var(--transition);color:${item.available ? 'var(--success)' : 'var(--danger)'};"><i class="fas fa-${item.available ? 'toggle-on' : 'toggle-off'}"></i></button>
+                <button class="vendor-delete-btn" data-id="${item.id}" style="background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;transition:var(--transition);color:var(--danger);"><i class="fas fa-trash" style="font-size:12px;"></i></button>
+              </div>
+            </div>
+          </div>
+        `
+      }
+      container.innerHTML = html
+      container.querySelectorAll('.vendor-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const id = this.dataset.id
+          const item = appData.menu.find(m => m.id === id)
+          if (item) await updateMenuItem(id, { available: !item.available })
+        })
+      })
+      container.querySelectorAll('.vendor-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const id = this.dataset.id
+          await deleteMenuItem(id)
+        })
+      })
+      container.querySelectorAll('.vendor-edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = this.dataset.id
+          const item = appData.menu.find(m => m.id === id)
+          if (!item) return
+          const newName = prompt('Item name:', item.name)
+          if (newName !== null && newName.trim()) {
+            const newPrice = prompt('Price (R):', item.price)
+            if (newPrice !== null && !isNaN(parseFloat(newPrice)) && parseFloat(newPrice) >= 0) {
+              const newDesc = prompt('Description:', item.description || '')
+              if (newDesc !== null) updateMenuItem(id, { name: newName.trim(), price: parseFloat(newPrice), description: newDesc })
+            }
+          }
+        })
+      })
+    }
+
+    function initVendorApp() {
+      document.getElementById('vendorAuthScreen').classList.add('hidden')
+      document.getElementById('vendorDashboard').classList.remove('hidden')
+      const vendor = appData.vendor || {}
+      document.getElementById('vendorNameDisplay').textContent = `Welcome, ${vendor.business_name || 'Vendor'}`
+      document.getElementById('vendorStatusBadge').textContent = vendor.verified ? '✅ Verified' : '⏳ Pending'
+      document.getElementById('vendorStatusBadge').className = `status-badge ${vendor.verified ? 'verified' : 'pending'}`
+      document.getElementById('vendorProfileName').value = vendor.business_name || ''
+      document.getElementById('vendorProfileContact').value = vendor.contact_person || ''
+      document.getElementById('vendorProfilePhone').value = vendor.phone || ''
+      document.getElementById('vendorProfileAddress').value = vendor.address || ''
+      document.getElementById('vendorProfileRadius').value = vendor.delivery_radius || 8
+      document.getElementById('vendorProfileMinOrder').value = vendor.min_order || 50
+      renderVendorMenu()
+    }
+
+    // ================================================================
+    //  TAB SWITCHING
+    // ================================================================
+    function switchTab(tabId) {
+      const panels = {
+        'tab-client': document.getElementById('tab-client'),
+        'tab-vendor': document.getElementById('tab-vendor'),
+        'tab-menu': document.getElementById('tab-menu'),
+        'tab-driver': document.getElementById('tab-driver'),
+        'tab-whatsapp': document.getElementById('tab-whatsapp')
+      }
+      const navItems = document.querySelectorAll('.bottom-nav .nav-item')
+      Object.values(panels).forEach(p => p.classList.remove('active'))
+      if (panels[tabId]) panels[tabId].classList.add('active')
+      navItems.forEach(item => { item.classList.toggle('active', item.dataset.tab === tabId) })
+      document.getElementById('appContent').scrollTop = 0
+      if (tabId === 'tab-client') { renderOrderHistory(); if (userLocation) findNearbyRestaurants(userLocation.lat, userLocation.lng) }
+      if (tabId === 'tab-vendor') {
+        if (currentUserRole === 'vendor') { document.getElementById('vendorAuthScreen').classList.add('hidden'); document.getElementById('vendorDashboard').classList.remove('hidden'); renderVendorMenu() }
+        else { document.getElementById('vendorAuthScreen').classList.remove('hidden'); document.getElementById('vendorDashboard').classList.add('hidden') }
+      }
+      if (tabId === 'tab-menu') { renderMenu(); updateCartUI() }
+      if (tabId === 'tab-whatsapp') updateWhatsAppPreview()
+      if (tabId === 'tab-driver') {
+        if (currentUserRole === 'driver') { document.getElementById('driverAuthScreen').classList.add('hidden'); document.getElementById('driverDashboard').classList.remove('hidden'); loadDriverAvailableOrders(); loadDriverMyOrders() }
+        else { document.getElementById('driverAuthScreen').classList.remove('hidden'); document.getElementById('driverDashboard').classList.add('hidden') }
+      }
+    }
+
+    // ================================================================
+    //  INIT
+    // ================================================================
+    async function init() {
+      document.getElementById('loadingOverlay').classList.remove('hidden')
+      loadData()
+      const session = await checkSession()
+      if (session) {
+        currentUser = session.user; currentUserRole = session.role; currentUserId = session.user.id
+        await loadAllData()
+        if (currentUserRole === 'vendor') {
+          document.getElementById('vendorAuthScreen').classList.add('hidden'); document.getElementById('vendorDashboard').classList.remove('hidden'); initVendorApp()
+          document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-store"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Vendor'
+        } else if (currentUserRole === 'driver') {
+          document.getElementById('driverAuthScreen').classList.add('hidden'); document.getElementById('driverDashboard').classList.remove('hidden')
+          const driver = await loadDriverData()
+          if (driver) {
+            document.getElementById('driverNameDisplay').textContent = `Welcome, ${driver.name}`
+            document.getElementById('driverStatusBadge').textContent = driver.status || 'Available'
+            document.getElementById('driverStatusBadge').className = `status-badge ${driver.status === 'available' ? 'available' : 'busy'}`
+            loadDriverAvailableOrders(); loadDriverMyOrders(); initDriverMap()
+          }
+          document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-motorcycle"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Driver'
+        } else {
+          document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-user"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Client'
+        }
+        setupRealtimeSubscriptions()
+      } else {
+        try { await loadRestaurants(); await loadMenuItems() } catch (error) { console.error('Error loading public data:', error) }
+      }
+      const now = new Date(); document.getElementById('statusTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const client = getClient(); const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) : 'U'
+      document.getElementById('avatarBtn').textContent = initials
+      const loc = appData.location
+      if (loc.lat && loc.lng) {
+        userLocation = { lat: loc.lat, lng: loc.lng }; updateLocationUI()
+        setTimeout(() => { updateMap(loc.lat, loc.lng); findNearbyRestaurants(loc.lat, loc.lng) }, 400)
+      } else getLocation()
+      setTimeout(initMap, 200)
+      renderOrderHistory(); renderVendorMenu(); renderMenu(); updateCartUI(); updateOrderBadge(); updateWhatsAppPreview()
+      if (appData.chatMessages && appData.chatMessages.length > 0) {
+        const box = document.getElementById('chatBox'); box.innerHTML = ''
+        for (const msg of appData.chatMessages) {
+          const senderClass = msg.sender === 'you' ? 'you' : msg.sender === 'driver' ? 'driver' : ''
+          const isSystem = msg.sender === 'system'
+          const div = document.createElement('div'); div.className = 'msg' + (isSystem ? ' delivered' : '')
+          div.innerHTML = isSystem ? `<i class="fas fa-check-circle"></i> ${msg.text}` : `<span class="sender ${senderClass}">${msg.sender === 'you' ? 'You' : msg.sender === 'driver' ? 'Sipho' : ''}:</span> ${msg.text} <span class="time">${msg.time || ''}</span>`
+          box.appendChild(div)
+        }
+        box.scrollTop = box.scrollHeight
+      }
+      document.getElementById('loadingOverlay').classList.add('hidden')
+
+      // ---- EVENT LISTENERS ----
+      document.getElementById('locBtn').addEventListener('click', getLocation)
+      document.getElementById('refreshRestaurants').addEventListener('click', function() { if (userLocation) { findNearbyRestaurants(userLocation.lat, userLocation.lng); toast('🔄 Restaurants refreshed', 'success') } else getLocation() })
+      document.getElementById('clearRestaurantBtn').addEventListener('click', function() { appData.currentRestaurantId = null; saveData(); document.getElementById('selectedRestaurantCard').style.display = 'none'; renderMenu(); toast('Restaurant cleared', 'info') })
+      document.getElementById('placeOrderBtn').addEventListener('click', placeOrder)
+
+      document.getElementById('paymentCancel').addEventListener('click', function() { document.getElementById('paymentModal').classList.remove('active'); pendingOrderData = null; toast('Payment cancelled', 'warning') })
+      document.getElementById('paymentWhatsApp').addEventListener('click', processWhatsAppPayment)
+      document.getElementById('modalCancel').addEventListener('click', function() { document.getElementById('modalOverlay').classList.remove('active') })
+      document.getElementById('modalConfirm').addEventListener('click', function() { document.getElementById('modalOverlay').classList.remove('active'); toast('Order confirmed!', 'success') })
+      document.getElementById('modalOverlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active') })
+
+      document.getElementById('sendWhatsAppBtn').addEventListener('click', function() { if (appData.cart.length === 0) { toast('Cart is empty. Add items first.', 'error'); return } placeOrder() })
+      document.getElementById('editWhatsAppBtn').addEventListener('click', function() { const current = document.getElementById('waOrderItems').textContent; const newText = prompt('Edit order items:', current); if (newText !== null && newText.trim()) { document.getElementById('waOrderItems').textContent = newText.trim(); toast('WhatsApp message updated', 'success') } })
+
+      // ---- Vendor Auth ----
+      document.getElementById('vendorAuthForm').addEventListener('submit', async function(e) {
+        e.preventDefault()
+        const email = document.getElementById('vendorAuthEmail').value.trim()
+        const password = document.getElementById('vendorAuthPassword').value.trim()
+        const isRegister = document.getElementById('vendorAuthBtn').textContent === 'Register'
+        try {
+          if (isRegister) {
+            const businessName = document.getElementById('vendorAuthName').value.trim()
+            const contactPerson = document.getElementById('vendorAuthContact').value.trim()
+            const phone = document.getElementById('vendorAuthPhone').value.trim()
+            const address = document.getElementById('vendorAuthAddress').value.trim()
+            if (!businessName || !contactPerson || !phone || !address) { toast('Please fill in all registration fields', 'error'); return }
+            const userData = { business_name: businessName, contact_person: contactPerson, phone, address, delivery_radius: 8, min_order: 50, verified: false }
+            await signUp(email, password, userData, 'vendor'); await loadAllData(); initVendorApp(); document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-store"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Vendor'
+          } else {
+            const result = await signIn(email, password)
+            if (result.success && result.role === 'vendor') { await loadAllData(); initVendorApp(); document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-store"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Vendor' }
+            else if (result.success) { toast('Not a vendor account', 'error'); await signOut() }
+          }
+        } catch (error) { toast('❌ ' + error.message, 'error') }
+      })
+      document.getElementById('toggleVendorAuth').addEventListener('click', function() {
+        const isLogin = this.textContent.includes('Login')
+        const btn = document.getElementById('vendorAuthBtn'), title = document.getElementById('vendorAuthTitle')
+        const fields = ['vendorNameField','vendorContactField','vendorPhoneField','vendorAddressField']
+        if (isLogin) { btn.textContent = 'Register'; title.textContent = 'Vendor Registration'; fields.forEach(f => document.getElementById(f).classList.remove('hidden')); this.textContent = 'Already have an account? Login' }
+        else { btn.textContent = 'Login'; title.textContent = 'Vendor Login'; fields.forEach(f => document.getElementById(f).classList.add('hidden')); this.textContent = "Don't have an account? Register" }
+      })
+      document.getElementById('updateVendorProfileBtn').addEventListener('click', async function() {
+        if (currentUserRole !== 'vendor') { toast('Only vendors can update profile', 'error'); return }
+        const vendor = appData.vendor || {}
+        const updates = {
+          business_name: document.getElementById('vendorProfileName').value.trim() || vendor.business_name,
+          contact_person: document.getElementById('vendorProfileContact').value.trim() || vendor.contact_person,
+          phone: document.getElementById('vendorProfilePhone').value.trim() || vendor.phone,
+          address: document.getElementById('vendorProfileAddress').value.trim() || vendor.address,
+          delivery_radius: parseInt(document.getElementById('vendorProfileRadius').value) || 8,
+          min_order: parseInt(document.getElementById('vendorProfileMinOrder').value) || 50,
+          updated_at: new Date()
+        }
+        try {
+          const { data, error } = await supabase.from('vendors').update(updates).eq('id', currentUserId).select().single()
+          if (error) throw error
+          appData.vendor = data; saveData(); toast('✅ Vendor profile updated', 'success'); document.getElementById('vendorNameDisplay').textContent = `Welcome, ${data.business_name}`
+          const restaurant = appData.restaurants.find(r => r.vendor_id === currentUserId)
+          if (restaurant) await supabase.from('restaurants').update({ name: data.business_name, address: data.address, min_order: data.min_order }).eq('id', restaurant.id)
+          await loadRestaurants(); if (userLocation) findNearbyRestaurants(userLocation.lat, userLocation.lng)
+        } catch (error) { toast('❌ ' + error.message, 'error') }
+      })
+      document.getElementById('vendorAddMenuItemBtn').addEventListener('click', function() {
+        const name = prompt('Item name:'); if (!name || !name.trim()) return
+        const price = prompt('Price (R):'); if (!price || isNaN(parseFloat(price)) || parseFloat(price) < 0) return toast('Invalid price', 'error')
+        const desc = prompt('Description (optional):') || ''; const category = prompt('Category (e.g. Burgers, Sides, Beverages):') || 'General'
+        addMenuItem(name.trim(), parseFloat(price), desc, category.trim())
+      })
+      document.getElementById('vendorUploadDocsBtn').addEventListener('click', function() { toast('📎 Document upload dialog would open here', 'info') })
+      document.getElementById('vendorLogoutBtn').addEventListener('click', async function() { await signOut() })
+
+      // ---- Driver Auth ----
+      document.getElementById('driverAuthForm').addEventListener('submit', async function(e) {
+        e.preventDefault()
+        const email = document.getElementById('driverAuthEmail').value.trim()
+        const password = document.getElementById('driverAuthPassword').value.trim()
+        const isRegister = document.getElementById('driverAuthBtn').textContent === 'Register'
+        try {
+          if (isRegister) {
+            const name = document.getElementById('driverAuthName').value.trim()
+            const phone = document.getElementById('driverAuthPhone').value.trim()
+            const vehicle = document.getElementById('driverAuthVehicle').value.trim()
+            if (!name || !phone || !vehicle) { toast('Please fill in all registration fields', 'error'); return }
+            const userData = { name, phone, vehicle, status: 'available' }
+            await signUp(email, password, userData, 'driver'); await loadAllData()
+            const driver = await loadDriverData()
+            if (driver) {
+              document.getElementById('driverNameDisplay').textContent = `Welcome, ${driver.name}`
+              document.getElementById('driverStatusBadge').textContent = driver.status || 'Available'
+              document.getElementById('driverStatusBadge').className = `status-badge ${driver.status === 'available' ? 'available' : 'busy'}`
+              loadDriverAvailableOrders(); loadDriverMyOrders(); initDriverMap()
+              document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-motorcycle"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Driver'
+            }
+          } else {
+            const result = await signIn(email, password)
+            if (result.success && result.role === 'driver') {
+              await loadAllData(); const driver = await loadDriverData()
+              if (driver) {
+                document.getElementById('driverNameDisplay').textContent = `Welcome, ${driver.name}`
+                document.getElementById('driverStatusBadge').textContent = driver.status || 'Available'
+                document.getElementById('driverStatusBadge').className = `status-badge ${driver.status === 'available' ? 'available' : 'busy'}`
+                loadDriverAvailableOrders(); loadDriverMyOrders(); initDriverMap()
+                document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-motorcycle"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Driver'
+              }
+            } else if (result.success) { toast('Not a driver account', 'error'); await signOut() }
+          }
+        } catch (error) { toast('❌ ' + error.message, 'error') }
+      })
+      document.getElementById('toggleDriverAuth').addEventListener('click', function() {
+        const isLogin = this.textContent.includes('Login')
+        const btn = document.getElementById('driverAuthBtn'), title = document.getElementById('driverAuthTitle')
+        const fields = ['driverNameField','driverPhoneField','driverVehicleField']
+        if (isLogin) { btn.textContent = 'Register'; title.textContent = 'Driver Registration'; fields.forEach(f => document.getElementById(f).classList.remove('hidden')); this.textContent = 'Already have an account? Login' }
+        else { btn.textContent = 'Login'; title.textContent = 'Driver Login'; fields.forEach(f => document.getElementById(f).classList.add('hidden')); this.textContent = "Don't have an account? Register" }
+      })
+      document.getElementById('driverLogoutBtn').addEventListener('click', async function() { await signOut() })
+
+      // ---- Chat ----
+      document.getElementById('chatSendBtn').addEventListener('click', function() {
+        const input = document.getElementById('chatInput'); const text = input.value.trim()
+        if (!text) return
+        addChatMessage('you', text); input.value = ''
+        setTimeout(() => { const replies = ['👍 Got it!','🛵 On my way!','📱 Will call when I arrive','✅ Order confirmed','⏱️ Running a bit late, sorry!','📍 Almost there!']; const reply = replies[Math.floor(Math.random() * replies.length)]; addChatMessage('driver', reply) }, 2000)
+      })
+      document.getElementById('chatInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('chatSendBtn').click() })
+
+      // ---- Commands ----
+      document.querySelectorAll('.cmd-chips .chip').forEach(chip => {
+        chip.addEventListener('click', function() { document.getElementById('cmdInput').value = this.dataset.cmd || this.textContent.trim(); document.getElementById('cmdInput').focus() })
+      })
+      document.getElementById('cmdSendBtn').addEventListener('click', function() {
+        const input = document.getElementById('cmdInput'); const cmd = input.value.trim()
+        if (!cmd) return
+        const response = document.getElementById('cmdResponse'); response.style.display = 'block'; response.innerHTML = `📱 Command sent: <strong>${cmd}</strong>`
+        toast('📱 Command received: ' + cmd, 'info'); response.innerHTML += `<br>✅ Command processed!`; input.value = ''
+        setTimeout(() => { response.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, 100)
+      })
+      document.getElementById('cmdInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('cmdSendBtn').click() })
+
+      // ---- Role Toggle ----
+      document.getElementById('roleToggleBtn').addEventListener('click', function() {
+        const currentIcon = this.innerHTML.trim()
+        if (currentIcon.includes('motorcycle')) {
+          if (currentUserRole === 'driver') switchTab('tab-driver')
+          else toast('Please login as a driver first', 'info')
+        } else if (currentIcon.includes('store')) {
+          if (currentUserRole === 'vendor') switchTab('tab-vendor')
+          else toast('Please login as a vendor first', 'info')
+        } else switchTab('tab-client')
+      })
+
+      // ---- Bottom Nav ----
+      document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const tabId = this.dataset.tab
+          if (tabId) {
+            if (tabId === 'tab-driver') { document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-motorcycle"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Driver' }
+            else if (tabId === 'tab-vendor') { document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-store"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Vendor' }
+            else { document.getElementById('roleToggleBtn').innerHTML = '<i class="fas fa-user"></i>'; document.getElementById('roleToggleBtn').title = 'Switch to Client' }
+            switchTab(tabId)
+          }
+        })
+      })
+
+      // ---- Notifications ----
+      document.getElementById('notifBtn').addEventListener('click', function() {
+        const orders = appData.orders || []; const pending = orders.filter(o => o.status !== 'delivered')
+        if (pending.length === 0) toast('No new notifications', 'info')
+        else toast(`${pending.length} order(s) in progress`, 'warning')
+        document.getElementById('notifDot').style.display = 'none'
+      })
+      const orders = appData.orders || []; const pending = orders.filter(o => o.status !== 'delivered')
+      if (pending.length > 0) document.getElementById('notifDot').style.display = 'block'
+      if (orders.length > 0) { document.getElementById('whatsappBadge').style.display = 'flex'; document.getElementById('whatsappBadge').textContent = orders.length }
+
+      console.log('🍔 Fast Food Delivery Guy — app ready!')
+    }
+
+    document.addEventListener('DOMContentLoaded', init)
+  </script>
+</body>
+</html>
